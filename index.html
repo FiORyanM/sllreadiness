@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SLL Readiness Tool</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="start-view" id="start-view" aria-label="Start SLL readiness analysis">
+        <header class="app-header">
+          <div>
+            <p class="eyebrow">SLL Readiness Tool</p>
+            <h1>Turn an ESG report into a lender-ready SLL assessment.</h1>
+          </div>
+          <p>
+            Upload a text-based sustainability report or run the AIIB demo to generate a one-page readiness report with live deal economics.
+          </p>
+        </header>
+
+        <section class="workflow-grid">
+          <article class="upload-card">
+            <div class="section-heading">
+              <h2>Start Analysis</h2>
+            </div>
+            <label class="file-drop">
+              <input id="report-upload" type="file" accept="application/pdf,.pdf" />
+              <span>Upload ESG report PDF</span>
+              <small id="selected-file">Upload a text-based PDF up to 20MB. Scanned/image-only reports are flagged before analysis.</small>
+            </label>
+            <div class="start-actions">
+              <button class="primary-button" id="demo-button" type="button">Try AIIB Demo</button>
+              <button class="secondary-button" id="upload-preview-button" type="button">Analyze Uploaded PDF</button>
+            </div>
+            <p class="status-message" id="start-status" role="status">
+              Demo mode uses the AIIB fixture from the handoff package.
+            </p>
+          </article>
+
+          <article class="upload-card">
+            <div class="section-heading">
+              <h2>Deal Defaults</h2>
+            </div>
+            <div class="mini-grid">
+              <div>
+                <span>Loan size</span>
+                <strong>$500M</strong>
+              </div>
+              <div>
+                <span>Tenor</span>
+                <strong>5 years</strong>
+              </div>
+              <div>
+                <span>Base margin</span>
+                <strong>150 bps</strong>
+              </div>
+              <div>
+                <span>Ratchet</span>
+                <strong>5-12 bps</strong>
+              </div>
+            </div>
+            <p class="helper-copy">
+              These assumptions are editable inside the report. For MDB borrowers, reduce the base margin to match actual deal terms.
+            </p>
+          </article>
+
+          <article class="upload-card">
+            <div class="section-heading">
+              <h2>Current Build</h2>
+            </div>
+            <ol class="build-list">
+              <li>AIIB fixture report renders end to end.</li>
+              <li>Financial calculations update live.</li>
+              <li>Uploaded PDFs run through first-pass browser extraction.</li>
+              <li>Anthropic extraction still needs a Node/Vite or Next.js backend.</li>
+            </ol>
+          </article>
+        </section>
+      </section>
+
+      <section class="report-page is-hidden" id="report-view" aria-label="SLL readiness report">
+        <header class="report-header">
+          <div>
+            <p class="eyebrow" id="company-label">AIIB Asian Infrastructure Investment Bank</p>
+            <p class="muted" id="company-subtitle">Multilateral Development Bank - Beijing - 2024 Sustainability Report</p>
+          </div>
+          <div class="title-block">
+            <h1>SLL Readiness Report</h1>
+            <p id="generated-date">Generated May 2026</p>
+          </div>
+        </header>
+
+        <section class="hero-grid">
+          <article class="verdict-panel">
+            <div class="verdict-icon" aria-hidden="true">OK</div>
+            <div>
+              <p class="label">Verdict</p>
+              <h2 id="verdict-title">SLL-viable - strong candidate for immediate outreach</h2>
+              <p id="verdict-copy">Mature ESG infrastructure. Low execution cost. Multiple ready-to-use KPIs identified.</p>
+            </div>
+          </article>
+
+          <article class="metric-panel highlight">
+            <p class="label">Net Saving vs Regular Loan</p>
+            <strong id="net-saving-range">+$955K -> +$2.88M</strong>
+            <span id="deal-summary">$500M - 5yr - 150bps base - 5-12bps ratchet</span>
+          </article>
+
+          <article class="metric-panel">
+            <p class="label">Overall Readiness</p>
+            <strong id="overall-readiness">84 / 100</strong>
+            <span id="readiness-band">High - ready to proceed</span>
+          </article>
+
+          <article class="metric-panel">
+            <p class="label">Est. Execution Cost</p>
+            <strong id="cost-range">$125K - $295K</strong>
+            <span>Best to worst - over tenor</span>
+          </article>
+
+          <article class="metric-panel">
+            <p class="label">Breakeven Ratchet</p>
+            <strong id="breakeven-range">0.5 - 1.2 bps</strong>
+            <span>Minimum bps to recover cost</span>
+          </article>
+        </section>
+
+        <section class="content-grid">
+          <article class="section-panel component-panel">
+            <div class="section-heading">
+              <h2>SLLP Readiness by Component</h2>
+            </div>
+            <div id="component-list" class="component-list"></div>
+          </article>
+
+          <article class="section-panel calculator-panel">
+            <div class="section-heading with-action">
+              <h2>Cost vs Benefit - Regular Loan vs SLL</h2>
+              <button class="print-button" id="print-button" type="button">Print / Save PDF</button>
+            </div>
+
+            <form class="assumption-grid" aria-label="Deal assumptions">
+              <label>
+                <span>Loan ($M)</span>
+                <input id="loan-size" type="number" min="1" step="1" value="500" />
+              </label>
+              <label>
+                <span>Tenor (yr)</span>
+                <input id="tenor" type="number" min="1" max="30" step="1" value="5" />
+              </label>
+              <label>
+                <span>Base margin (bps)</span>
+                <input id="base-margin" type="number" min="1" max="1000" step="1" value="150" />
+              </label>
+              <label>
+                <span>Ratchet best</span>
+                <input id="ratchet-best" type="number" min="0" max="15" step="1" value="12" />
+              </label>
+              <label>
+                <span>Ratchet worst</span>
+                <input id="ratchet-worst" type="number" min="0" max="15" step="1" value="5" />
+              </label>
+            </form>
+
+            <div class="comparison-grid">
+              <div class="loan-column regular">
+                <p class="pill">Regular Loan</p>
+                <dl>
+                  <div><dt>Loan size</dt><dd id="regular-loan-size">$500.00M</dd></div>
+                  <div><dt>x base margin</dt><dd id="regular-margin">150 bps</dd></div>
+                  <div><dt>x tenor</dt><dd id="regular-tenor">5 yrs</dd></div>
+                  <div><dt>Execution cost</dt><dd>$0</dd></div>
+                  <div class="total"><dt>Total outlay</dt><dd id="regular-outlay">$37.50M</dd></div>
+                </dl>
+              </div>
+
+              <div class="versus" aria-hidden="true">vs</div>
+
+              <div class="loan-column sll">
+                <p class="pill">SLL Best Case</p>
+                <dl>
+                  <div><dt>Loan size</dt><dd id="sll-loan-size">$500.00M</dd></div>
+                  <div><dt>x reduced margin</dt><dd><span id="sll-margin">138 bps</span> <small id="sll-ratchet">(-12)</small></dd></div>
+                  <div><dt>x tenor</dt><dd id="sll-tenor">5 yrs</dd></div>
+                  <div><dt>+ execution cost</dt><dd id="best-exec-cost">$125K</dd></div>
+                  <div class="total"><dt>Total outlay</dt><dd id="best-total-outlay">$34.63M</dd></div>
+                </dl>
+              </div>
+            </div>
+
+            <div class="scenario-grid">
+              <article class="scenario-card best-case">
+                <p class="label" id="best-case-label">Best Case - 12bps</p>
+                <dl>
+                  <div><dt>Regular outlay</dt><dd id="best-regular">$37.50M</dd></div>
+                  <div><dt>- SLL interest</dt><dd id="best-sll-interest">$34.50M</dd></div>
+                  <div><dt>- Execution cost</dt><dd id="best-exec">$125K</dd></div>
+                  <div class="net"><dt>Net saving</dt><dd id="best-net">+$2.88M</dd></div>
+                </dl>
+                <p id="best-formula" class="formula">$37.50M - $34.50M - $125K</p>
+              </article>
+
+              <article class="scenario-card worst-case">
+                <p class="label" id="worst-case-label">Worst Case - 5bps</p>
+                <dl>
+                  <div><dt>Regular outlay</dt><dd id="worst-regular">$37.50M</dd></div>
+                  <div><dt>- SLL interest</dt><dd id="worst-sll-interest">$36.25M</dd></div>
+                  <div><dt>- Execution cost</dt><dd id="worst-exec">$295K</dd></div>
+                  <div class="net"><dt>Net saving</dt><dd id="worst-net">+$955K</dd></div>
+                </dl>
+                <p id="worst-formula" class="formula">$37.50M - $36.25M - $295K</p>
+              </article>
+            </div>
+          </article>
+
+          <article class="section-panel kpi-panel">
+            <div class="section-heading">
+              <h2>Candidate KPIs - Immediately Available</h2>
+            </div>
+            <div id="kpi-list" class="kpi-list"></div>
+          </article>
+
+          <article class="section-panel gap-panel">
+            <div class="section-heading">
+              <h2>Gaps to Resolve</h2>
+            </div>
+            <div id="gap-list" class="gap-list"></div>
+            <aside class="note">
+              <strong>Note on base margin:</strong> <span id="base-margin-note">150bps is a generic corporate placeholder. AIIB's actual sovereign lending spreads are lower (AAA-rated MDB). Adjust the base margin parameter to reflect the actual deal terms for accurate figures.</span>
+            </aside>
+          </article>
+        </section>
+
+        <footer class="report-footer" id="report-footer">
+          Based on 2024 AIIB Sustainability Report - SLLP March 2025 - Execution cost figures are indicative estimates - Adjust parameters above to update all figures
+        </footer>
+      </section>
+    </main>
+
+    <script type="module" src="app.js?v=upload-click-20260608b"></script>
+  </body>
+</html>
