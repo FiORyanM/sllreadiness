@@ -188,6 +188,10 @@ function setUploadStatus(message, tone = "neutral") {
   view.status.dataset.tone = tone;
 }
 
+function netSavingDollars(value) {
+  return value < 0 ? `-${dollars(Math.abs(value))}` : dollars(value);
+}
+
 function updateCalculations() {
   const inputs = readInputs();
   const executionCost = activeReport.analysis.executionCost;
@@ -195,8 +199,8 @@ function updateCalculations() {
   const worst = calculateScenario(inputs, inputs.ratchetWorst, executionCost.worst);
   const reducedMargin = Math.max(inputs.baseMargin - inputs.ratchetBest, 0);
 
-  els["net-saving-range"].textContent = `${signedDollars(worst.netSaving)} -> ${signedDollars(best.netSaving)}`;
-  els["deal-summary"].textContent = `$${inputs.loanSizeM.toLocaleString()}M - ${inputs.tenor}yr - ${inputs.baseMargin}bps base - ${inputs.ratchetWorst}-${inputs.ratchetBest}bps ratchet`;
+  els["net-saving-range"].textContent = `${netSavingDollars(worst.netSaving)} -> ${netSavingDollars(best.netSaving)}`;
+  els["deal-summary"].textContent = `USD $${inputs.loanSizeM.toLocaleString()}M - ${inputs.tenor}yr - ${inputs.baseMargin}bps base - ${inputs.ratchetWorst}-${inputs.ratchetBest}bps ratchet`;
   els["cost-range"].textContent = `${dollars(executionCost.best)} - ${dollars(executionCost.worst)}`;
   els["breakeven-range"].textContent = `${best.breakevenBps.toFixed(1)} - ${worst.breakevenBps.toFixed(1)} bps`;
 

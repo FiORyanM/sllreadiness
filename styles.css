@@ -77,7 +77,7 @@ input {
 
 .workflow-grid {
   display: grid;
-  grid-template-columns: 1.35fr 1fr 1fr;
+  grid-template-columns: minmax(0, 1.25fr) minmax(300px, 0.75fr);
   gap: 12px;
   margin-top: 12px;
 }

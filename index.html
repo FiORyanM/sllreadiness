@@ -71,17 +71,6 @@
             </p>
           </article>
 
-          <article class="upload-card">
-            <div class="section-heading">
-              <h2>Current Build</h2>
-            </div>
-            <ol class="build-list">
-              <li>AIIB fixture report renders end to end.</li>
-              <li>Financial calculations update live.</li>
-              <li>Uploaded PDFs run through first-pass browser extraction.</li>
-              <li>Anthropic extraction still needs a Node/Vite or Next.js backend.</li>
-            </ol>
-          </article>
         </section>
       </section>
 
@@ -108,9 +97,9 @@
           </article>
 
           <article class="metric-panel highlight">
-            <p class="label">Net Saving vs Regular Loan</p>
-            <strong id="net-saving-range">+$955K -> +$2.88M</strong>
-            <span id="deal-summary">$500M - 5yr - 150bps base - 5-12bps ratchet</span>
+            <p class="label">Net Saving vs Regular Loan (USD)</p>
+            <strong id="net-saving-range">$955K -> $2.88M</strong>
+            <span id="deal-summary">USD $500M - 5yr - 150bps base - 5-12bps ratchet</span>
           </article>
 
           <article class="metric-panel">
@@ -148,7 +137,7 @@
 
             <form class="assumption-grid" aria-label="Deal assumptions">
               <label>
-                <span>Loan ($M)</span>
+                <span>Loan (USD $M)</span>
                 <input id="loan-size" type="number" min="1" step="1" value="500" />
               </label>
               <label>
@@ -220,13 +209,6 @@
             </div>
           </article>
 
-          <article class="section-panel kpi-panel">
-            <div class="section-heading">
-              <h2>Candidate KPIs - Immediately Available</h2>
-            </div>
-            <div id="kpi-list" class="kpi-list"></div>
-          </article>
-
           <article class="section-panel gap-panel">
             <div class="section-heading">
               <h2>Gaps to Resolve</h2>
@@ -236,6 +218,13 @@
               <strong>Note on base margin:</strong> <span id="base-margin-note">150bps is a generic corporate placeholder. AIIB's actual sovereign lending spreads are lower (AAA-rated MDB). Adjust the base margin parameter to reflect the actual deal terms for accurate figures.</span>
             </aside>
           </article>
+
+          <article class="section-panel kpi-panel">
+            <div class="section-heading">
+              <h2>Candidate KPIs - Immediately Available</h2>
+            </div>
+            <div id="kpi-list" class="kpi-list"></div>
+          </article>
         </section>
 
         <footer class="report-footer" id="report-footer">
@@ -244,6 +233,6 @@
       </section>
     </main>
 
-    <script type="module" src="app.js?v=upload-click-20260608b"></script>
+    <script type="module" src="app.js?v=demo-ui-20260610"></script>
   </body>
 </html>
