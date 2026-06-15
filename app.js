@@ -285,10 +285,11 @@ async function handleUploadedPreview() {
     }
 
     setUploadStatus(
-      `Extracted ${pdfResult.metadata.extractedCharCount.toLocaleString()} characters. Building structured SLL JSON...`,
+      `Extracted ${pdfResult.metadata.extractedCharCount.toLocaleString()} characters. Trying AI extraction...`,
     );
 
-    const extraction = extractSllReadinessJson(pdfResult);
+    const extractionResult = await extractUploadedReport(pdfResult);
+    const extraction = extractionResult.extraction;
     const validation = validateSllExtractionJson(extraction);
 
     if (!validation.ok) {
@@ -299,7 +300,7 @@ async function handleUploadedPreview() {
     const uploadedReport = mapExtractionToReport(extraction);
     showReport(
       uploadedReport,
-      `Uploaded report analyzed from ${pdfResult.metadata.extractedCharCount.toLocaleString()} extracted characters.`,
+      `${extractionResult.statusMessage} ${pdfResult.metadata.extractedCharCount.toLocaleString()} characters analyzed.`,
     );
   } catch (error) {
     console.error(error);
@@ -308,6 +309,53 @@ async function handleUploadedPreview() {
     isExtracting = false;
     previewButton.disabled = false;
     previewButton.textContent = "Analyze Uploaded PDF";
+  }
+}
+
+async function extractUploadedReport(pdfResult) {
+  try {
+    const aiResponse = await fetch("/api/extract-sll", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        text: pdfResult.text,
+        metadata: pdfResult.metadata,
+      }),
+    });
+
+    if (!aiResponse.ok) {
+      const detail = await safeReadJson(aiResponse);
+      throw new Error(detail.message || `AI extraction failed with ${aiResponse.status}`);
+    }
+
+    const payload = await aiResponse.json();
+
+    if (!payload.ok || !payload.extraction) {
+      throw new Error(payload.message || "AI extraction did not return structured JSON.");
+    }
+
+    return {
+      extraction: payload.extraction,
+      statusMessage: "AI extraction completed.",
+    };
+  } catch (error) {
+    console.warn("AI extraction unavailable; falling back to rules.", error);
+    setUploadStatus("AI extraction unavailable. Falling back to browser rules...");
+
+    return {
+      extraction: extractSllReadinessJson(pdfResult),
+      statusMessage: "Rules fallback completed.",
+    };
+  }
+}
+
+async function safeReadJson(response) {
+  try {
+    return await response.json();
+  } catch {
+    return {};
   }
 }
 

@@ -8,6 +8,8 @@ import {
 } from "../extraction/pdfExtractionAdapter.js";
 import { extractSllReadinessJson, validateSllExtractionJson } from "../extraction/sllExtractionAdapter.js";
 import { extractSllReadinessWithLlm, normalizeLlmExtractionResponse } from "../extraction/llmExtractionAdapter.js";
+import { deepseekProvider } from "../extraction/providers/deepseekProvider.js";
+import { nvidiaProvider } from "../extraction/providers/nvidiaProvider.js";
 import { buildSllExtractionPrompt, sllExtractionSchemaVersion } from "../extraction/sllExtractionSchema.js";
 import { calculateExecutionCost } from "../models/costModel.js";
 import { calculateScenario } from "../models/financialModel.js";
@@ -129,5 +131,25 @@ ${JSON.stringify(llmExtractionResult.extraction)}
 \`\`\``);
 
 assert.equal(normalizedJson.schemaVersion, sllExtractionSchemaVersion);
+
+await assert.rejects(
+  () =>
+    deepseekProvider({
+      prompt: "Return JSON.",
+      schemaVersion: sllExtractionSchemaVersion,
+      config: { apiKey: "" },
+    }),
+  /DEEPSEEK_API_KEY/,
+);
+
+await assert.rejects(
+  () =>
+    nvidiaProvider({
+      prompt: "Return JSON.",
+      schemaVersion: sllExtractionSchemaVersion,
+      config: { apiKey: "" },
+    }),
+  /NVIDIA_API_KEY/,
+);
 
 console.log("Model smoke tests passed.");
