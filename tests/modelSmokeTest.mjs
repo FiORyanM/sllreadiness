@@ -7,6 +7,8 @@ import {
   validatePdfFile,
 } from "../extraction/pdfExtractionAdapter.js";
 import { extractSllReadinessJson, validateSllExtractionJson } from "../extraction/sllExtractionAdapter.js";
+import { extractSllReadinessWithLlm, normalizeLlmExtractionResponse } from "../extraction/llmExtractionAdapter.js";
+import { buildSllExtractionPrompt, sllExtractionSchemaVersion } from "../extraction/sllExtractionSchema.js";
 import { calculateExecutionCost } from "../models/costModel.js";
 import { calculateScenario } from "../models/financialModel.js";
 import { weightedReadinessFromScores } from "../models/scoringModel.js";
@@ -92,5 +94,40 @@ const extraction = extractSllReadinessJson({
 
 assert.equal(validateSllExtractionJson(extraction).ok, true);
 assert.equal(extraction.company.name, "Asian Infrastructure Investment Bank");
+
+const prompt = buildSllExtractionPrompt({
+  text: extractedText,
+  metadata: {
+    fileName: "aiib-test.pdf",
+    fileSizeBytes: 1000,
+    pageCount: 1,
+    extractedCharCount: extractedText.length,
+    truncated: false,
+  },
+});
+
+assert.match(prompt, /Sustainability-Linked Loan Principles, 26 March 2025/);
+assert.match(prompt, /valid JSON only/);
+
+const llmExtractionResult = await extractSllReadinessWithLlm({
+  text: extractedText,
+  metadata: {
+    fileName: "aiib-test.pdf",
+    fileSizeBytes: 1000,
+    pageCount: 1,
+    extractedCharCount: extractedText.length,
+    truncated: false,
+  },
+});
+
+assert.equal(llmExtractionResult.ok, true);
+assert.equal(llmExtractionResult.extraction.schemaVersion, sllExtractionSchemaVersion);
+assert.equal(llmExtractionResult.extraction.extractionMode, "mock-llm-provider");
+
+const normalizedJson = normalizeLlmExtractionResponse(`\`\`\`json
+${JSON.stringify(llmExtractionResult.extraction)}
+\`\`\``);
+
+assert.equal(normalizedJson.schemaVersion, sllExtractionSchemaVersion);
 
 console.log("Model smoke tests passed.");

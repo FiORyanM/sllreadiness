@@ -33,19 +33,22 @@ export function mapExtractionToReport(extraction) {
 
 function verdictFromExtraction(extraction) {
   const readyKpis = extraction.analysis.kpis.filter((kpi) => kpi.status === "Ready").length;
-  const mediumGaps = extraction.analysis.gaps.filter((gap) => gap.severity === "Medium").length;
+  const materialGaps = extraction.analysis.gaps.filter((gap) => gap.severity === "Medium" || gap.severity === "High").length;
+  const hasVerificationGate = extraction.modelInputs.componentsByKey.externalVerification?.score >= 75;
 
-  if (readyKpis >= 2 && mediumGaps <= 1) {
+  if (readyKpis >= 2 && materialGaps <= 1 && hasVerificationGate) {
     return {
       title: "SLL-viable - proceed to evidence review",
-      copy: "The uploaded report shows enough KPI and reporting signals for a first-pass SLL discussion.",
+      copy: "The uploaded report shows enough KPI, reporting and verification signals for a first-pass SLL discussion.",
     };
   }
 
-  if (readyKpis >= 1 || mediumGaps <= 2) {
+  if (readyKpis >= 1 || materialGaps <= 3) {
     return {
       title: "Potentially SLL-viable - gaps to close",
-      copy: "The uploaded report contains usable ESG signals, but lender-ready KPI evidence needs review.",
+      copy: hasVerificationGate
+        ? "The uploaded report contains usable ESG signals, but lender-ready KPI/SPT evidence needs review."
+        : "The uploaded report contains usable ESG signals, but SLLP external verification evidence needs confirmation before it can be treated as lender-ready.",
     };
   }
 

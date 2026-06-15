@@ -14,7 +14,7 @@ Use `/Users/ryan/Downloads/SLL Readiness Report — AIIB (1).pdf` as the initial
 
 - PDF upload for ESG, sustainability, or annual reports with ESG sections.
 - Scanned/image-only PDF detection with a clear error.
-- Stage 1 Anthropic document extraction into the handoff JSON schema.
+- Stage 1 provider-neutral AI document extraction into the handoff JSON schema.
 - Stage 2 scoring and cost-model enrichment.
 - Stage 3 one-page HTML report rendering.
 - Editable deal assumptions: loan size, tenor, base margin, best/worst ratchet.
@@ -65,7 +65,7 @@ Recommended stack:
 - Next.js or Vite/React for fast prototype delivery.
 - TypeScript throughout.
 - Zod for schema validation.
-- Anthropic SDK for Stage 1 extraction.
+- Provider adapter for Stage 1 extraction, with DeepSeek/OpenAI/Anthropic implementations swappable behind the same schema.
 - Client-side JavaScript/React state for live financial updates.
 - No database for MVP unless audit trails become required.
 
@@ -73,7 +73,7 @@ Recommended stack:
 
 1. User uploads a PDF.
 2. Backend validates file type and approximate size.
-3. Backend sends PDF to Anthropic with the exact extraction prompt from the handoff.
+3. Backend sends PDF text to the configured AI provider with the exact extraction prompt and schema contract.
 4. Backend validates the returned JSON against the schema.
 5. If JSON is malformed, retry once with a strict "valid JSON only" instruction.
 6. Scoring module maps maturities to weighted readiness scores.
@@ -155,7 +155,7 @@ Acceptance criteria:
 - AIIB expected total execution cost range is approximately `$125K-$295K` over 5 years with 2 KPIs.
 - Unit tests cover scoring, cost ranges, low-confidence penalty, and financial formulas.
 
-### Phase 3: Anthropic Extraction Integration
+### Phase 3: AI Extraction Integration
 
 Deliverables:
 
@@ -164,8 +164,9 @@ Deliverables:
   - PDF only for MVP.
   - Recommended 20MB limit.
   - clear error for oversized files.
-- Anthropic API call using `claude-sonnet-4-20250514`.
-- Exact handoff extraction prompt.
+- Provider-neutral extraction adapter with a mock provider for local tests.
+- DeepSeek Flash, OpenAI, or Anthropic API call behind the same adapter.
+- Exact SLLP-aligned extraction prompt.
 - JSON validation with retry-on-malformed response.
 - Source evidence preservation.
 - Error states for extraction failure.
@@ -247,9 +248,9 @@ netSaving = regularInterest - sllInterest - execCost
 breakevenBps = (execCost / (loanSize * tenor)) * 10000
 ```
 
-### `anthropicExtraction`
+### `llmExtractionAdapter`
 
-Owns prompt construction, PDF upload call, retry behavior, and response normalization.
+Owns prompt construction, provider calls, retry behavior, and response normalization.
 
 ### `reportMapper`
 

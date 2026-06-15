@@ -6,10 +6,10 @@ const maturityValues = {
 };
 
 export const sllWeights = {
-  kpiDataHistory: 0.3,
-  kpiMethodology: 0.2,
-  reportingInfrastructure: 0.25,
-  externalVerification: 0.15,
+  kpiDataHistory: 0.25,
+  kpiMethodology: 0.25,
+  reportingInfrastructure: 0.2,
+  externalVerification: 0.2,
   strategicAlignment: 0.1,
 };
 
