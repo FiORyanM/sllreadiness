@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: sll-readiness-tool
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+      - key: AI_PROVIDER
+        value: nvidia
+      - key: NVIDIA_MODEL
+        value: deepseek-ai/deepseek-v4-flash
+      - key: NVIDIA_API_URL
+        value: https://integrate.api.nvidia.com/v1/chat/completions
+      - key: NVIDIA_API_KEY
+        sync: false

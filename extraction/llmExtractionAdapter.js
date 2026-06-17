@@ -41,6 +41,103 @@ export async function extractSllReadinessWithLlm({ text, metadata, provider = mo
   };
 }
 
+export async function extractSllReadinessWithChunkedLlm({
+  text,
+  metadata,
+  provider = mockLlmProvider,
+  chunkSize = 24000,
+  overlap = 1200,
+  retries = 1,
+  minChunkSize = 3500,
+}) {
+  const chunks = chunkText(text, { chunkSize, overlap });
+  const results = [];
+
+  for (const [index, chunk] of chunks.entries()) {
+    const chunkResults = await extractChunkRecursively({
+      text: chunk,
+      metadata: {
+        ...metadata,
+        extractedCharCount: chunk.length,
+        truncated: true,
+        chunkIndex: index + 1,
+        chunkCount: chunks.length,
+      },
+      provider,
+      retries,
+      minChunkSize,
+    });
+
+    results.push(...chunkResults.map((result) => result.extraction));
+  }
+
+  const extraction = mergeChunkExtractions(results, metadata);
+  const validation = validateSllExtractionContract(extraction);
+
+  return {
+    ok: validation.ok,
+    extraction,
+    validation,
+    chunkCount: chunks.length,
+  };
+}
+
+async function extractChunkRecursively({ text, metadata, provider, retries, minChunkSize }) {
+  try {
+    const result = await extractChunkWithRetry({ text, metadata, provider, retries });
+
+    if (!result.ok) {
+      throw new Error(`Chunk validation failed: ${result.validation?.missing?.join(", ") || "unknown"}`);
+    }
+
+    return [result];
+  } catch (error) {
+    if (text.length <= minChunkSize) {
+      throw new Error(`Chunk ${metadata.chunkIndex}/${metadata.chunkCount} failed at ${text.length} chars: ${error.message}`);
+    }
+
+    const midpoint = findSoftBreak(text, 0, Math.ceil(text.length / 2));
+    const left = text.slice(0, midpoint);
+    const right = text.slice(midpoint);
+    const leftResults = await extractChunkRecursively({
+      text: left,
+      metadata: {
+        ...metadata,
+        extractedCharCount: left.length,
+      },
+      provider,
+      retries,
+      minChunkSize,
+    });
+    const rightResults = await extractChunkRecursively({
+      text: right,
+      metadata: {
+        ...metadata,
+        extractedCharCount: right.length,
+      },
+      provider,
+      retries,
+      minChunkSize,
+    });
+
+    return [...leftResults, ...rightResults];
+  }
+}
+
+async function extractChunkWithRetry({ text, metadata, provider, retries }) {
+  let lastError;
+
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    try {
+      return await extractSllReadinessWithLlm({ text, metadata, provider });
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError;
+}
+
 export async function mockLlmProvider({ text, metadata }) {
   const extraction = extractSllReadinessJson({ text, metadata });
 
@@ -83,6 +180,165 @@ function applyExtractionDefaults(extraction) {
       componentsByKey: normalizeComponents(extraction.modelInputs?.componentsByKey ?? {}),
     },
   };
+}
+
+function mergeChunkExtractions(extractions, metadata) {
+  const first = extractions[0];
+  const kpis = uniqueByName(extractions.flatMap((extraction) => extraction.analysis?.kpis ?? []));
+  const gaps = uniqueByName(extractions.flatMap((extraction) => extraction.analysis?.gaps ?? []), "title");
+  const componentsByKey = mergeComponents(extractions.map((extraction) => extraction.modelInputs?.componentsByKey ?? {}));
+  const readyKpiCount = kpis.filter((kpi) => kpi.status === "Ready").length;
+
+  return applyExtractionDefaults({
+    ...first,
+    schemaVersion: sllExtractionSchemaVersion,
+    extractionMode: "chunked-llm-extraction",
+    source: {
+      ...first.source,
+      ...metadata,
+      extractedCharCount: metadata.extractedCharCount ?? first.source?.extractedCharCount,
+      truncated: false,
+    },
+    company: mergeCompany(extractions),
+    modelInputs: {
+      ...first.modelInputs,
+      recommendedKpiCount: Math.max(Math.min(readyKpiCount, 2), 1),
+      hasLowConfidence: extractions.some((extraction) => extraction.modelInputs?.hasLowConfidence),
+      bestCaseSetupFloors: {},
+      worstCaseExcludedDrivers: [],
+      componentsByKey,
+    },
+    analysis: {
+      ...first.analysis,
+      kpis,
+      gaps,
+      sllpAlignment: mergeSllpAlignment(extractions),
+      baseMarginNote:
+        first.analysis?.baseMarginNote ||
+        "150bps is a generic placeholder for first-pass screening. Replace with actual loan margin for decision-useful economics.",
+    },
+    confidence: {
+      overall: mergeOverallConfidence(extractions),
+      notes: [
+        `Chunked AI extraction merged ${extractions.length} report segments.`,
+        ...extractions.flatMap((extraction) => extraction.confidence?.notes ?? []).slice(0, 4),
+      ],
+    },
+  });
+}
+
+function chunkText(text, { chunkSize, overlap }) {
+  if (text.length <= chunkSize) return [text];
+
+  const chunks = [];
+  let start = 0;
+
+  while (start < text.length) {
+    const hardEnd = Math.min(start + chunkSize, text.length);
+    const softEnd = findSoftBreak(text, start, hardEnd);
+    chunks.push(text.slice(start, softEnd));
+    if (softEnd >= text.length) break;
+    start = Math.max(softEnd - overlap, start + 1);
+  }
+
+  return chunks;
+}
+
+function findSoftBreak(text, start, hardEnd) {
+  const windowStart = Math.max(start + Math.floor((hardEnd - start) * 0.75), start);
+  const slice = text.slice(windowStart, hardEnd);
+  const pageBreak = slice.lastIndexOf("--- PDF PAGE");
+  if (pageBreak > 0) return windowStart + pageBreak;
+  const paragraphBreak = slice.lastIndexOf("\n\n");
+  if (paragraphBreak > 0) return windowStart + paragraphBreak;
+  return hardEnd;
+}
+
+function mergeCompany(extractions) {
+  const companies = extractions.map((extraction) => extraction.company).filter(Boolean);
+  const company = companies.find((item) => /nvidia/i.test(item.name)) ?? companies[0] ?? {};
+
+  return {
+    name: company.name || "Uploaded company",
+    reportTitle: company.reportTitle || "Uploaded ESG report",
+    reportingYear: company.reportingYear || "",
+  };
+}
+
+function mergeComponents(componentSets) {
+  const merged = {};
+
+  for (const key of Object.keys(componentLabels)) {
+    const components = componentSets.map((set) => set[key]).filter(Boolean);
+    const best = components.reduce((winner, component) => {
+      if (!winner) return component;
+      return (component.score ?? 0) > (winner.score ?? 0) ? component : winner;
+    }, null);
+
+    merged[key] = {
+      ...best,
+      name: componentLabels[key],
+      score: best?.score ?? 0,
+      maturity: best?.maturity ?? "absent",
+      status: best?.status ?? "Gap",
+    };
+  }
+
+  return merged;
+}
+
+function mergeSllpAlignment(extractions) {
+  const coreComponents = {};
+  const keys = ["selectionOfKpis", "calibrationOfSpts", "loanCharacteristics", "reporting", "verification"];
+
+  for (const key of keys) {
+    const items = extractions
+      .map((extraction) => extraction.analysis?.sllpAlignment?.coreComponents?.[key])
+      .filter(Boolean);
+    const detected = items.find((item) => item.status === "Detected");
+    const selected = detected ?? items[0] ?? { status: "Needs review", note: "Evidence not detected in chunked extraction." };
+    coreComponents[key] = selected;
+  }
+
+  return {
+    standard: firstValue(extractions, (extraction) => extraction.analysis?.sllpAlignment?.standard) ||
+      "Sustainability-Linked Loan Principles, 26 March 2025",
+    coreComponents,
+  };
+}
+
+function mergeOverallConfidence(extractions) {
+  if (extractions.some((extraction) => extraction.confidence?.overall === "low")) return "medium";
+  if (extractions.every((extraction) => extraction.confidence?.overall === "high")) return "high";
+  return "medium";
+}
+
+function uniqueByName(items, key = "name") {
+  const byName = new Map();
+
+  for (const item of items) {
+    const name = (item[key] || "").toLowerCase().trim();
+    if (!name) continue;
+    const existing = byName.get(name);
+    if (!existing || rankItem(item) > rankItem(existing)) byName.set(name, item);
+  }
+
+  return Array.from(byName.values()).slice(0, 6);
+}
+
+function rankItem(item) {
+  const statusScore = item.status === "Ready" || item.status === "Detected" ? 2 : 1;
+  const confidenceScore = item.confidence === "high" ? 2 : item.confidence === "medium" ? 1 : 0;
+  const severityScore = item.severity === "High" ? 2 : item.severity === "Medium" ? 1 : 0;
+  return statusScore + confidenceScore + severityScore;
+}
+
+function firstValue(items, getter) {
+  for (const item of items) {
+    const value = getter(item);
+    if (value) return value;
+  }
+  return "";
 }
 
 function normalizeComponents(componentsByKey) {

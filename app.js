@@ -1,4 +1,6 @@
 import { aiibFixture } from "./fixtures/aiib.js";
+import { nvidiaFixture } from "./fixtures/nvidia.js";
+import { tsmcFixture } from "./fixtures/tsmc.js";
 import { extractPdfText } from "./extraction/pdfExtractionAdapter.js";
 import { extractSllReadinessJson, validateSllExtractionJson } from "./extraction/sllExtractionAdapter.js";
 import { mapExtractionToReport } from "./mappers/reportMapper.js";
@@ -372,6 +374,14 @@ function init() {
 
   document.getElementById("demo-button").addEventListener("click", () => {
     showReport(aiibFixture, "AIIB demo loaded.");
+  });
+
+  document.getElementById("nvidia-demo-button").addEventListener("click", () => {
+    showReport(nvidiaFixture, "NVIDIA FY25 demo loaded.");
+  });
+
+  document.getElementById("tsmc-demo-button").addEventListener("click", () => {
+    showReport(tsmcFixture, "TSMC 2024 demo loaded.");
   });
 
   document.addEventListener("click", (event) => {

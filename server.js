@@ -3,7 +3,11 @@ import { readFile, stat } from "node:fs/promises";
 import { createServer } from "node:http";
 import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
-import { extractSllReadinessWithLlm } from "./extraction/llmExtractionAdapter.js";
+import {
+  extractSllReadinessWithChunkedLlm,
+  extractSllReadinessWithLlm,
+  mockLlmProvider,
+} from "./extraction/llmExtractionAdapter.js";
 import { deepseekProvider } from "./extraction/providers/deepseekProvider.js";
 import { nvidiaProvider } from "./extraction/providers/nvidiaProvider.js";
 
@@ -27,6 +31,11 @@ const mimeTypes = {
 
 const server = createServer(async (request, response) => {
   try {
+    if (request.method === "GET" && request.url === "/health") {
+      sendJson(response, 200, { ok: true, service: "sll-readiness-tool" });
+      return;
+    }
+
     if (request.method === "POST" && request.url === "/api/extract-sll") {
       await handleExtractSll(request, response);
       return;
@@ -62,11 +71,11 @@ async function handleExtractSll(request, response) {
   }
 
   try {
-    const result = await extractSllReadinessWithLlm({
-      text,
-      metadata,
-      provider: selectAiProvider(),
-    });
+    const provider = selectAiProvider();
+    const result =
+      text.length > 28000
+        ? await extractSllReadinessWithChunkedLlm({ text, metadata, provider, chunkSize: 12000, overlap: 800, retries: 1 })
+        : await extractSllReadinessWithLlm({ text, metadata, provider });
 
     if (!result.ok) {
       sendJson(response, 422, {
@@ -86,7 +95,7 @@ async function handleExtractSll(request, response) {
     const isConfigError = /API_KEY/.test(error.message);
     sendJson(response, isConfigError ? 503 : 502, {
       ok: false,
-      message: isConfigError ? "AI provider is not configured." : "AI provider request failed.",
+      message: isConfigError ? "AI provider is not configured." : "Extraction provider request failed.",
       detail: error.message,
     });
   }
@@ -95,6 +104,7 @@ async function handleExtractSll(request, response) {
 function selectAiProvider() {
   const providerName = (process.env.AI_PROVIDER ?? "").toLowerCase();
 
+  if (providerName === "local" || providerName === "rules" || providerName === "off") return mockLlmProvider;
   if (providerName === "nvidia") return nvidiaProvider;
   if (providerName === "deepseek") return deepseekProvider;
   if (process.env.NVIDIA_API_KEY) return nvidiaProvider;

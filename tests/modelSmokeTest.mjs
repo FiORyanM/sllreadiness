@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import { aiibFixture } from "../fixtures/aiib.js";
+import { nvidiaFixture } from "../fixtures/nvidia.js";
+import { tsmcFixture } from "../fixtures/tsmc.js";
 import {
   estimatePageCount,
   extractTextFromPdfSource,
@@ -19,6 +21,18 @@ const scoring = weightedReadinessFromScores(aiibFixture.modelInputs.componentsBy
 
 assert.equal(scoring.band, "high");
 assert.equal(scoring.score100, 88);
+
+const nvidiaScoring = weightedReadinessFromScores(nvidiaFixture.modelInputs.componentsByKey);
+
+assert.equal(nvidiaScoring.band, "high");
+assert.equal(nvidiaScoring.score100, 89);
+assert.equal(nvidiaFixture.analysis.kpis.length, 4);
+
+const tsmcScoring = weightedReadinessFromScores(tsmcFixture.modelInputs.componentsByKey);
+
+assert.equal(tsmcScoring.band, "high");
+assert.equal(tsmcScoring.score100, 91);
+assert.equal(tsmcFixture.analysis.kpis.length, 4);
 
 const executionCost = calculateExecutionCost({
   readinessBand: scoring.band,
