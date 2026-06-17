@@ -6,11 +6,11 @@ This app deploys as a small Node web service:
 - Backend endpoint at `POST /api/extract-sll`
 - API keys stored in platform environment variables, not in the browser
 
-## Recommended Option: Render
+## Recommended Option: Railway
 
 1. Push this branch to GitHub.
-2. In Render, choose **New > Blueprint** and select this repository.
-3. Render will read `render.yaml`.
+2. In Railway, choose **New Project > Deploy from GitHub repo**.
+3. Select this repository and deploy the app.
 4. Add the secret environment variable:
 
 ```bash
@@ -25,6 +25,15 @@ NVIDIA_MODEL=deepseek-ai/deepseek-v4-flash
 NVIDIA_API_URL=https://integrate.api.nvidia.com/v1/chat/completions
 HOST=0.0.0.0
 ```
+
+Railway provides `PORT` automatically. If Railway already injects a host value, leave `HOST` unset or set it to `0.0.0.0`; do not set it to `[::]`.
+
+## Render Option
+
+1. Push this branch to GitHub.
+2. In Render, choose **New > Blueprint** and select this repository.
+3. Render will read `render.yaml`.
+4. Add the same environment variables listed above.
 
 Render provides `PORT` automatically.
 

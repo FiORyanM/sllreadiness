@@ -15,7 +15,7 @@ const rootDir = fileURLToPath(new URL(".", import.meta.url));
 loadDotEnv();
 
 const port = Number(process.env.PORT ?? 3002);
-const host = process.env.HOST ?? "127.0.0.1";
+const host = normalizeHost(process.env.HOST ?? (process.env.PORT ? "0.0.0.0" : "127.0.0.1"));
 const maxJsonBytes = 2 * 1024 * 1024;
 
 const mimeTypes = {
@@ -180,4 +180,10 @@ function loadDotEnv() {
   } catch {
     // .env is optional; deployment environments can provide variables directly.
   }
+}
+
+function normalizeHost(value) {
+  if (value === "[::]") return "::";
+  if (value === "localhost") return "127.0.0.1";
+  return value;
 }
