@@ -10,6 +10,7 @@ import {
 } from "../extraction/pdfExtractionAdapter.js";
 import { extractSllReadinessJson, validateSllExtractionJson } from "../extraction/sllExtractionAdapter.js";
 import { extractSllReadinessWithLlm, normalizeLlmExtractionResponse } from "../extraction/llmExtractionAdapter.js";
+import { createExtractionJobQueue } from "../extraction/extractionJobQueue.js";
 import { deepseekProvider } from "../extraction/providers/deepseekProvider.js";
 import { nvidiaProvider } from "../extraction/providers/nvidiaProvider.js";
 import { buildSllExtractionPrompt, sllExtractionSchemaVersion } from "../extraction/sllExtractionSchema.js";
@@ -165,5 +166,67 @@ await assert.rejects(
     }),
   /NVIDIA_API_KEY/,
 );
+
+const queueText = "Sustainability report with GHG emissions, Scope 1, Scope 2, energy targets and limited assurance. ".repeat(900);
+let providerCalls = 0;
+const queue = createExtractionJobQueue({
+  provider: async ({ text, metadata }) => {
+    providerCalls += 1;
+    return {
+      ...extractSllReadinessJson({ text, metadata }),
+      schemaVersion: sllExtractionSchemaVersion,
+      extractionMode: "test-provider",
+    };
+  },
+  requestsPerMinute: Infinity,
+});
+const queueMetadata = {
+  fileName: "queue-test.pdf",
+  fileSizeBytes: 1000,
+  pageCount: 4,
+  extractedCharCount: queueText.length,
+  truncated: false,
+};
+const queuedJob = queue.createJob({ text: queueText, metadata: queueMetadata });
+let queuedStatus = queue.getJob(queuedJob.id);
+while (queuedStatus.status === "queued" || queuedStatus.status === "processing") {
+  await new Promise((resolve) => setTimeout(resolve, 5));
+  queuedStatus = queue.getJob(queuedJob.id);
+}
+assert.equal(queuedStatus.status, "completed");
+assert.equal(queuedStatus.progress.total > 1, true);
+assert.equal(queuedStatus.result.extraction.schemaVersion, sllExtractionSchemaVersion);
+
+const cachedJob = queue.createJob({ text: queueText, metadata: queueMetadata });
+assert.equal(cachedJob.status, "completed");
+assert.equal(cachedJob.cacheHit, true);
+assert.equal(providerCalls, queuedStatus.progress.total);
+
+let flakyCalls = 0;
+const retryDelays = [];
+const retryQueue = createExtractionJobQueue({
+  provider: async ({ text, metadata }) => {
+    flakyCalls += 1;
+    if (flakyCalls === 1) throw new Error("NVIDIA API failed with 429: rate limited");
+    return {
+      ...extractSllReadinessJson({ text, metadata }),
+      schemaVersion: sllExtractionSchemaVersion,
+      extractionMode: "test-provider",
+    };
+  },
+  requestsPerMinute: Infinity,
+  sleep: async (milliseconds) => {
+    retryDelays.push(milliseconds);
+  },
+});
+const retryJob = retryQueue.createJob({ text: extractedText, metadata: queueMetadata });
+let retryStatus = retryQueue.getJob(retryJob.id);
+while (retryStatus.status === "queued" || retryStatus.status === "processing") {
+  await new Promise((resolve) => setTimeout(resolve, 5));
+  retryStatus = retryQueue.getJob(retryJob.id);
+}
+assert.equal(retryStatus.status, "completed");
+assert.equal(flakyCalls, 2);
+assert.deepEqual(retryDelays, [5_000]);
 
 console.log("Model smoke tests passed.");

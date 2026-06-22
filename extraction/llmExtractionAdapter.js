@@ -182,7 +182,7 @@ function applyExtractionDefaults(extraction) {
   };
 }
 
-function mergeChunkExtractions(extractions, metadata) {
+export function mergeChunkExtractions(extractions, metadata) {
   const first = extractions[0];
   const kpis = uniqueByName(extractions.flatMap((extraction) => extraction.analysis?.kpis ?? []));
   const gaps = uniqueByName(extractions.flatMap((extraction) => extraction.analysis?.gaps ?? []), "title");
@@ -227,7 +227,7 @@ function mergeChunkExtractions(extractions, metadata) {
   });
 }
 
-function chunkText(text, { chunkSize, overlap }) {
+export function chunkText(text, { chunkSize, overlap }) {
   if (text.length <= chunkSize) return [text];
 
   const chunks = [];

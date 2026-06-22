@@ -24,6 +24,7 @@ AI_PROVIDER=nvidia
 NVIDIA_MODEL=deepseek-ai/deepseek-v4-flash
 NVIDIA_API_URL=https://integrate.api.nvidia.com/v1/chat/completions
 HOST=0.0.0.0
+AI_REQUESTS_PER_MINUTE=20
 ```
 
 Railway provides `PORT` automatically. If Railway already injects a host value, leave `HOST` unset or set it to `0.0.0.0`; do not set it to `[::]`.
@@ -66,7 +67,7 @@ The built-in demo buttons do not call the AI provider:
 - NVIDIA demo
 - TSMC demo
 
-Uploaded PDF analysis uses `/api/extract-sll` and the configured provider.
+Uploaded PDF analysis creates a background job at `POST /api/extraction-jobs`, then polls `GET /api/extraction-jobs/:id` for progress. The server runs one rate-limited worker at 20 RPM, retries transient provider errors with 5/15/45-second backoff, and keeps a 24-hour in-memory SHA-256 text cache. The cache is cleared when the service restarts.
 
 To disable external AI calls locally:
 

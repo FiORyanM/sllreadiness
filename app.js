@@ -286,9 +286,7 @@ async function handleUploadedPreview() {
       return;
     }
 
-    setUploadStatus(
-      `Extracted ${pdfResult.metadata.extractedCharCount.toLocaleString()} characters. Trying AI extraction...`,
-    );
+    setUploadStatus(`Extracted ${pdfResult.metadata.extractedCharCount.toLocaleString()} characters. Creating AI analysis job...`);
 
     const extractionResult = await extractUploadedReport(pdfResult);
     const extraction = extractionResult.extraction;
@@ -316,7 +314,7 @@ async function handleUploadedPreview() {
 
 async function extractUploadedReport(pdfResult) {
   try {
-    const aiResponse = await fetch("/api/extract-sll", {
+    const aiResponse = await fetch("/api/extraction-jobs", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -334,13 +332,18 @@ async function extractUploadedReport(pdfResult) {
 
     const payload = await aiResponse.json();
 
-    if (!payload.ok || !payload.extraction) {
-      throw new Error(payload.message || "AI extraction did not return structured JSON.");
-    }
+    if (!payload.ok || !payload.job) throw new Error(payload.message || "AI extraction job could not be created.");
+
+    const completedJob = await pollExtractionJob(payload.job);
+    if (!completedJob.result?.extraction) throw new Error(completedJob.error || "AI extraction did not return structured JSON.");
 
     return {
-      extraction: payload.extraction,
-      statusMessage: "AI extraction completed.",
+      extraction: completedJob.result.extraction,
+      statusMessage: completedJob.cacheHit
+        ? "AI extraction loaded from cache."
+        : completedJob.fallbackChunks
+          ? `AI extraction completed with rules fallback for ${completedJob.fallbackChunks} section(s).`
+          : "AI extraction completed.",
     };
   } catch (error) {
     console.warn("AI extraction unavailable; falling back to rules.", error);
@@ -351,6 +354,22 @@ async function extractUploadedReport(pdfResult) {
       statusMessage: "Rules fallback completed.",
     };
   }
+}
+
+async function pollExtractionJob(initialJob) {
+  let job = initialJob;
+
+  while (job.status === "queued" || job.status === "processing") {
+    setUploadStatus(`${job.stage} (${job.progress.completed} / ${job.progress.total})`);
+    await new Promise((resolve) => setTimeout(resolve, 1200));
+    const response = await fetch(`/api/extraction-jobs/${encodeURIComponent(job.id)}`);
+    const payload = await safeReadJson(response);
+    if (!response.ok || !payload.ok || !payload.job) throw new Error(payload.message || "Unable to read extraction progress.");
+    job = payload.job;
+  }
+
+  if (job.status !== "completed") throw new Error(job.error || "AI extraction job failed.");
+  return job;
 }
 
 async function safeReadJson(response) {

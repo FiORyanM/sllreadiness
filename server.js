@@ -3,11 +3,8 @@ import { readFile, stat } from "node:fs/promises";
 import { createServer } from "node:http";
 import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
-import {
-  extractSllReadinessWithChunkedLlm,
-  extractSllReadinessWithLlm,
-  mockLlmProvider,
-} from "./extraction/llmExtractionAdapter.js";
+import { mockLlmProvider } from "./extraction/llmExtractionAdapter.js";
+import { createExtractionJobQueue } from "./extraction/extractionJobQueue.js";
 import { deepseekProvider } from "./extraction/providers/deepseekProvider.js";
 import { nvidiaProvider } from "./extraction/providers/nvidiaProvider.js";
 
@@ -17,6 +14,10 @@ loadDotEnv();
 const port = Number(process.env.PORT ?? 3002);
 const host = normalizeHost(process.env.HOST ?? (process.env.PORT ? "0.0.0.0" : "127.0.0.1"));
 const maxJsonBytes = 2 * 1024 * 1024;
+const extractionJobs = createExtractionJobQueue({
+  provider: selectAiProvider(),
+  requestsPerMinute: Number(process.env.AI_REQUESTS_PER_MINUTE ?? 20),
+});
 
 const mimeTypes = {
   ".html": "text/html; charset=utf-8",
@@ -36,8 +37,13 @@ const server = createServer(async (request, response) => {
       return;
     }
 
-    if (request.method === "POST" && request.url === "/api/extract-sll") {
-      await handleExtractSll(request, response);
+    if (request.method === "POST" && (request.url === "/api/extraction-jobs" || request.url === "/api/extract-sll")) {
+      await handleCreateExtractionJob(request, response);
+      return;
+    }
+
+    if (request.method === "GET" && request.url.startsWith("/api/extraction-jobs/")) {
+      handleGetExtractionJob(request, response);
       return;
     }
 
@@ -57,7 +63,7 @@ server.listen(port, host, () => {
   console.log(`SLL Readiness Tool running at http://${host}:${port}`);
 });
 
-async function handleExtractSll(request, response) {
+async function handleCreateExtractionJob(request, response) {
   const body = await readJsonBody(request);
   const text = String(body.text ?? "");
   const metadata = body.metadata ?? {};
@@ -70,35 +76,20 @@ async function handleExtractSll(request, response) {
     return;
   }
 
-  try {
-    const provider = selectAiProvider();
-    const result =
-      text.length > 28000
-        ? await extractSllReadinessWithChunkedLlm({ text, metadata, provider, chunkSize: 12000, overlap: 800, retries: 1 })
-        : await extractSllReadinessWithLlm({ text, metadata, provider });
+  const job = extractionJobs.createJob({ text, metadata });
+  sendJson(response, job.cacheHit ? 200 : 202, { ok: true, job });
+}
 
-    if (!result.ok) {
-      sendJson(response, 422, {
-        ok: false,
-        message: "AI extraction returned incomplete SLL JSON.",
-        validation: result.validation,
-      });
-      return;
-    }
+function handleGetExtractionJob(request, response) {
+  const jobId = request.url.slice("/api/extraction-jobs/".length);
+  const job = extractionJobs.getJob(jobId);
 
-    sendJson(response, 200, {
-      ok: true,
-      extraction: result.extraction,
-      validation: result.validation,
-    });
-  } catch (error) {
-    const isConfigError = /API_KEY/.test(error.message);
-    sendJson(response, isConfigError ? 503 : 502, {
-      ok: false,
-      message: isConfigError ? "AI provider is not configured." : "Extraction provider request failed.",
-      detail: error.message,
-    });
+  if (!job) {
+    sendJson(response, 404, { ok: false, message: "Extraction job was not found." });
+    return;
   }
+
+  sendJson(response, 200, { ok: true, job });
 }
 
 function selectAiProvider() {
