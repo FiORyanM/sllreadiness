@@ -1,7 +1,10 @@
+import * as pdfjsLib from "../node_modules/pdfjs-dist/legacy/build/pdf.mjs";
+
 export const PDF_UPLOAD_LIMIT_BYTES = 20 * 1024 * 1024;
 
 const MIN_TEXT_CHARS_PER_PAGE = 80;
-const MAX_PREVIEW_CHARS = 24000;
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = new URL("../node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs", import.meta.url).toString();
 
 export function validatePdfFile(file, options = {}) {
   const maxBytes = options.maxBytes ?? PDF_UPLOAD_LIMIT_BYTES;
@@ -39,11 +42,31 @@ export async function extractPdfText(file) {
     };
   }
 
-  const source = await file.text();
-  const text = extractTextFromPdfSource(source);
-  const pageCount = estimatePageCount(source);
-  const imageObjectCount = countMatches(source, /\/Subtype\s*\/Image\b/g);
-  const textOperatorCount = countMatches(source, /\b(?:Tj|TJ|Tf|BT|ET)\b/g);
+  let document;
+
+  try {
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const loadingTask = pdfjsLib.getDocument({ data: bytes });
+    document = await loadingTask.promise;
+  } catch (error) {
+    return {
+      ok: false,
+      stage: "text_extraction",
+      message: `This PDF could not be read: ${error.message}`,
+    };
+  }
+
+  const pageText = [];
+  for (let pageNumber = 1; pageNumber <= document.numPages; pageNumber += 1) {
+    const page = await document.getPage(pageNumber);
+    const content = await page.getTextContent();
+    pageText.push(content.items.map((item) => item.str).join(" "));
+  }
+
+  const text = normalizeExtractedText(pageText.join("\n\n"));
+  const pageCount = document.numPages;
+  const imageObjectCount = 0;
+  const textOperatorCount = pageText.filter(Boolean).length;
   const isLikelyScanned = isLikelyScannedPdf({
     text,
     pageCount,
@@ -75,7 +98,7 @@ export async function extractPdfText(file) {
       extractedCharCount: text.length,
       imageObjectCount,
       textOperatorCount,
-      truncated: text.length > MAX_PREVIEW_CHARS,
+      truncated: false,
     },
   };
 }
@@ -138,8 +161,7 @@ function normalizeExtractedText(value) {
   return value
     .replace(/\s+/g, " ")
     .replace(/\s([,.;:%])/g, "$1")
-    .trim()
-    .slice(0, MAX_PREVIEW_CHARS);
+    .trim();
 }
 
 function countMatches(source, pattern) {
