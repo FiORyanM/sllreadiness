@@ -30,7 +30,7 @@ const mimeTypes = {
 const server = createServer(async (request, response) => {
   try {
     if (request.method === "GET" && request.url === "/health") {
-      sendJson(response, 200, { ok: true, service: "sll-readiness-tool" });
+      sendJson(response, 200, { ok: true, service: "sll-readiness-tool", providers: extractionJobs.providerNames ?? [] });
       return;
     }
 
@@ -143,12 +143,14 @@ function createPersistentExtractionJobs() {
     const repository = new SupabaseAnalysisRepository();
     const providers = configuredAiProviders();
     if (!providers.length) throw new Error("Configure at least one complete AI provider: NVIDIA, Gemini, or Groq.");
+    const providerNames = providers.map((provider) => provider.name);
+    console.log(`Configured AI providers: ${providerNames.join(", ")}`);
     const queue = createPersistentAiJobQueue({ repository, providers });
     void queue.resume().catch((error) => console.error("Unable to resume AI extraction jobs:", error));
-    return { queue, repository };
+    return { queue, repository, providerNames };
   } catch (error) {
     console.error("Persistent AI extraction is unavailable:", error.message);
-    return { queue: null, repository: null, error: error.message };
+    return { queue: null, repository: null, providerNames: [], error: error.message };
   }
 }
 
