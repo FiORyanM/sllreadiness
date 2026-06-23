@@ -66,6 +66,7 @@ const ids = [
   "worst-formula",
   "base-margin-note",
   "report-footer",
+  "analysis-scope",
 ];
 
 const els = Object.fromEntries(ids.map((id) => [id, document.getElementById(id)]));
@@ -161,6 +162,38 @@ function renderReportMeta(report) {
   els["readiness-band"].textContent = isAssessed ? report.analysis.readinessBand : "Insufficient cited evidence";
   els["base-margin-note"].textContent = report.analysis.baseMarginNote;
   els["report-footer"].textContent = report.company.footer;
+  renderAnalysisScope(report.analysis.analysisScope);
+}
+
+function renderAnalysisScope(scope) {
+  if (!scope) {
+    els["analysis-scope"].classList.add("is-hidden");
+    return;
+  }
+  els["analysis-scope"].classList.remove("is-hidden");
+  if (scope.fullCoverage) {
+    els["analysis-scope"].textContent = `Analysis coverage: all ${scope.analyzedPageCount} unique PDF pages were assessed.`;
+    return;
+  }
+  els["analysis-scope"].textContent = `Analysis coverage: assessed pages ${formatPageRanges(scope.analyzedPages)}. Skipped and not assessed: ${formatPageRanges(scope.skippedPages)}.`;
+}
+
+function formatPageRanges(pages = []) {
+  if (!pages.length) return "none";
+  const ranges = [];
+  let start = pages[0];
+  let previous = pages[0];
+  for (const page of pages.slice(1)) {
+    if (page === previous + 1) {
+      previous = page;
+      continue;
+    }
+    ranges.push(start === previous ? `${start}` : `${start}–${previous}`);
+    start = page;
+    previous = page;
+  }
+  ranges.push(start === previous ? `${start}` : `${start}–${previous}`);
+  return ranges.join(", ");
 }
 
 function renderComponents(report) {

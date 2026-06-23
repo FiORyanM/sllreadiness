@@ -372,6 +372,16 @@ input {
   padding-left: 18px;
 }
 
+.analysis-scope {
+  margin-top: 8px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  background: #f4f7f8;
+  color: #52656c;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
 .calculator-panel,
 .gap-panel {
   min-width: 0;

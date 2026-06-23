@@ -11,7 +11,7 @@ export class SupabaseAnalysisRepository {
   async createOrReuseJob({ text, metadata, chunks }) {
     // Include the pipeline version so contract-valid but semantically invalid
     // results from earlier scoring logic are not reused from the cache.
-    const reportHash = sha256(`sll-readiness-v5-full-coverage:${text}`);
+    const reportHash = sha256(`sll-readiness-v6-explicit-page-scope:${text}`);
     const cached = await this.findCachedResult(reportHash);
     const token = createToken();
     const job = {

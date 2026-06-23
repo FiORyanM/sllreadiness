@@ -32,6 +32,7 @@ export function mapExtractionToReport(extraction) {
         reportingYear,
         confidence: extraction.confidence.overall,
       },
+      analysisScope: extraction.source.analysisScope,
     },
   };
 }
@@ -39,14 +40,16 @@ export function mapExtractionToReport(extraction) {
 function reportScopeFooter(scope) {
   const caveat = "SLLP March 2025 - Execution cost figures are indicative estimates - not decision-grade";
   if (scope?.fullCoverage) return `Evidence extraction processed all ${scope.analyzedPageCount} unique PDF pages${scope.duplicatePageCount ? ` (${scope.duplicatePageCount} exact duplicates removed)` : ""} - ${caveat}`;
+  if (scope?.omittedPageCount) return `Evidence extraction assessed ${scope.analyzedPageCount} of ${scope.sourcePageCount} pages; skipped pages are explicitly listed above and were not assessed - ${caveat}`;
   return `Based on browser-side PDF text extraction - ${caveat}`;
 }
 
 function verdictFromExtraction(extraction) {
+  const scopeCaveat = extraction.source.analysisScope?.fullCoverage ? "" : " This is based only on selected pages; skipped pages were not assessed.";
   if (extraction.modelInputs.assessmentState !== "assessed") {
     return {
       title: "Potential SLL candidate — insufficient cited evidence",
-      copy: "This report has not been scored because one or more SLL readiness components lack a quoted, page-level source. It requires evidence review before any SLL conclusion.",
+      copy: `This report has not been scored because one or more SLL readiness components lack a quoted, page-level source. It requires evidence review before any SLL conclusion.${scopeCaveat}`,
     };
   }
 
@@ -58,7 +61,7 @@ function verdictFromExtraction(extraction) {
   if (readiness >= 75 && readyKpis >= 2 && materialGaps <= 1 && hasVerificationGate) {
     return {
       title: "Potential SLL candidate — evidence review required",
-      copy: "The uploaded report has cited KPI, reporting and verification signals that warrant a first-pass SLL discussion; this is not a lender decision.",
+      copy: `The uploaded report has cited KPI, reporting and verification signals that warrant a first-pass SLL discussion; this is not a lender decision.${scopeCaveat}`,
     };
   }
 
@@ -66,14 +69,14 @@ function verdictFromExtraction(extraction) {
     return {
       title: "Potential SLL candidate — gaps to close",
       copy: hasVerificationGate
-        ? "The uploaded report contains usable ESG signals, but lender-ready KPI/SPT evidence needs review."
-        : "The uploaded report contains usable ESG signals, but SLLP external verification evidence needs confirmation before it can be treated as lender-ready.",
+        ? `The uploaded report contains usable ESG signals, but lender-ready KPI/SPT evidence needs review.${scopeCaveat}`
+        : `The uploaded report contains usable ESG signals, but SLLP external verification evidence needs confirmation before it can be treated as lender-ready.${scopeCaveat}`,
     };
   }
 
   return {
     title: "Not yet a potential SLL candidate — build cited evidence",
-    copy: "The uploaded report needs stronger KPI history, methodology or verification before outreach.",
+    copy: `The uploaded report needs stronger KPI history, methodology or verification before outreach.${scopeCaveat}`,
   };
 }
 

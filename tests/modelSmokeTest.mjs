@@ -160,8 +160,8 @@ const oversizedReport = Array.from({ length: 313 }, (_, index) =>
 ).join("\n");
 const preparedPages = prepareFullPdfText(oversizedReport);
 assert.equal(preparedPages.scope.sourcePageCount, 313);
-assert.equal(preparedPages.scope.analyzedPageCount, 313);
-assert.equal(preparedPages.scope.fullCoverage, true);
+assert.equal(preparedPages.scope.analyzedPageCount <= 90, true);
+assert.equal(preparedPages.scope.skippedPages.length > 0, true);
 
 const llmExtractionResult = await extractSllReadinessWithLlm({
   text: extractedText,
