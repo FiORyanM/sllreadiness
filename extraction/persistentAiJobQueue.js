@@ -1,5 +1,5 @@
 import { chunkText } from "./llmExtractionAdapter.js";
-import { buildChunkEvidencePrompt, buildFinalMergePrompt, validateChunkEvidence, validateFinalExtraction } from "./aiEvidenceSchema.js";
+import { buildChunkEvidencePrompt, buildFinalMergePrompt, keepVerifiableChunkEvidence, validateChunkEvidence, validateFinalExtraction } from "./aiEvidenceSchema.js";
 import { normalizeAiExtraction } from "./aiExtractionNormalizer.js";
 import { prepareFullPdfText } from "./pdfPagePreparation.js";
 
@@ -90,12 +90,13 @@ export function createPersistentAiJobQueue({ repository, providers, sleep = dela
 
     try {
       await waitForProvider(candidate);
-      const evidence = await candidate.invoke({
+      const rawEvidence = await candidate.invoke({
         prompt: buildChunkEvidencePrompt({ text: chunk.text, metadata }),
         schemaVersion: "sll-chunk-evidence.v1",
         config: { maxTokens: chunkMaxTokens, ...(candidate.config ?? {}) },
       });
       if ((await repository.getJob(job.id))?.status === "cancelled") return;
+      const evidence = keepVerifiableChunkEvidence(rawEvidence, chunk.text);
       const validation = validateChunkEvidence(evidence, chunk.text);
       if (!validation.ok) throw new Error(`AI chunk JSON is incomplete: ${validation.missing.join(", ")}`);
       await repository.updateChunk(chunk.id, { status: "completed", evidence, last_error: null });

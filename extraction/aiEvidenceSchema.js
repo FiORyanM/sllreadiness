@@ -55,6 +55,23 @@ export function validateChunkEvidence(value, sourceText = "") {
   return { ok: missing.length === 0, missing };
 }
 
+// A malformed citation invalidates that item, not the entire provider response.
+// Retaining only verifiable evidence makes the downstream report abstain where
+// evidence is absent instead of treating a formatting error as API exhaustion.
+export function keepVerifiableChunkEvidence(value, sourceText = "") {
+  return {
+    ...value,
+    evidence: (value?.evidence ?? []).filter((item) => {
+      if (!item?.topic || !item?.finding || !item?.sourceQuote || !validPageNumbers(item.pageNumbers)) return false;
+      return !sourceText.includes("--- PDF PAGE") || quoteAppearsOnClaimedPage(item.sourceQuote, item.pageNumbers, sourceText);
+    }),
+  };
+}
+
+function validPageNumbers(pageNumbers) {
+  return Array.isArray(pageNumbers) && pageNumbers.length > 0 && pageNumbers.every((page) => Number.isInteger(page) && page > 0);
+}
+
 function quoteAppearsOnClaimedPage(quote, pages, sourceText) {
   if (!quote || !Array.isArray(pages)) return false;
   const normalizedQuote = normalizeForMatch(quote);

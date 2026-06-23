@@ -19,7 +19,7 @@ import { geminiProvider } from "../extraction/providers/geminiProvider.js";
 import { groqProvider } from "../extraction/providers/groqProvider.js";
 import { nvidiaProvider } from "../extraction/providers/nvidiaProvider.js";
 import { buildSllExtractionPrompt, sllExtractionSchemaVersion } from "../extraction/sllExtractionSchema.js";
-import { validateChunkEvidence } from "../extraction/aiEvidenceSchema.js";
+import { keepVerifiableChunkEvidence, validateChunkEvidence } from "../extraction/aiEvidenceSchema.js";
 import { prepareFullPdfText } from "../extraction/pdfPagePreparation.js";
 import { calculateExecutionCost } from "../models/costModel.js";
 import { calculateScenario } from "../models/financialModel.js";
@@ -154,6 +154,13 @@ const citedChunk = {
 };
 assert.equal(validateChunkEvidence(citedChunk, "--- PDF PAGE 2 ---\nGHG emissions target is disclosed.").ok, true);
 assert.equal(validateChunkEvidence(citedChunk, "--- PDF PAGE 3 ---\nGHG emissions target is disclosed.").ok, false);
+const partiallyInvalidChunk = {
+  ...citedChunk,
+  evidence: [...citedChunk.evidence, { topic: "target", finding: "Unsupported target", sourceQuote: "not in source", pageNumbers: [2], confidence: "medium" }],
+};
+const sanitizedChunk = keepVerifiableChunkEvidence(partiallyInvalidChunk, "--- PDF PAGE 2 ---\nGHG emissions target is disclosed.");
+assert.equal(sanitizedChunk.evidence.length, 1);
+assert.equal(validateChunkEvidence(sanitizedChunk, "--- PDF PAGE 2 ---\nGHG emissions target is disclosed.").ok, true);
 
 const oversizedReport = Array.from({ length: 313 }, (_, index) =>
   `--- PDF PAGE ${index + 1} ---\nGHG emissions target methodology and assurance on unique topic ${String.fromCharCode(65 + (index % 26))}${String.fromCharCode(65 + Math.floor(index / 26))}. ${"evidence ".repeat(200)}`,
