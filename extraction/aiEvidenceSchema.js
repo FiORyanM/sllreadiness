@@ -87,6 +87,7 @@ export function buildFinalMergePrompt({ metadata, evidences }) {
     JSON.stringify(finalExtractionContract),
     "Source metadata:",
     JSON.stringify(metadata),
+    "Use documentIdentification only to identify the company, report title, or reporting year. It is not SLL evidence and must not support a score, KPI, or gap.",
     "AI evidence from all report segments:",
     JSON.stringify(evidences),
   ].join("\n");

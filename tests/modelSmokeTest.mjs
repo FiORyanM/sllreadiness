@@ -174,6 +174,8 @@ const mixedRelevanceReport = [
 const mixedPages = prepareFullPdfText(mixedRelevanceReport);
 assert.deepEqual(mixedPages.scope.analyzedPages, [5]);
 assert.deepEqual(mixedPages.scope.skippedPages, [1, 2, 3, 4]);
+assert.deepEqual(mixedPages.scope.metadataOnlyPages, [1]);
+assert.equal(mixedPages.documentIdentification.page, 1);
 
 const singleSignalReport = "--- PDF PAGE 1 ---\nIndependent assurance statement by an external auditor.";
 assert.deepEqual(prepareFullPdfText(singleSignalReport).scope.analyzedPages, [1]);

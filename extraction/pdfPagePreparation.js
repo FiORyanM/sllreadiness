@@ -33,6 +33,8 @@ export function prepareFullPdfText(text) {
   selected.sort((left, right) => left.number - right.number);
   const analyzedPages = selected.map((page) => page.number);
   const skippedPages = pages.map((page) => page.number).filter((pageNumber) => !analyzedPages.includes(pageNumber));
+  const identificationPage = pages.find((page) => page.number === 1);
+  const metadataOnlyPages = identificationPage && !analyzedPages.includes(1) ? [1] : [];
 
   return {
     text: selected.map((page) => `--- PDF PAGE ${page.number} ---\n${page.text}`).join("\n\n"),
@@ -44,8 +46,10 @@ export function prepareFullPdfText(text) {
       fullCoverage: skippedPages.length === 0,
       analyzedPages,
       skippedPages,
+      metadataOnlyPages,
       selectionRule: "Any page with emissions, targets, methodology, or independent verification; or a page with at least two distinct signals among emissions, targets, methodology, verification, reporting, and strategy. A single generic reporting or strategy reference is not enough.",
     },
+    documentIdentification: identificationPage ? { page: 1, text: identificationPage.text.slice(0, 2_000) } : null,
   };
 }
 

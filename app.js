@@ -175,7 +175,8 @@ function renderAnalysisScope(scope) {
     els["analysis-scope"].textContent = `Analysis coverage: all ${scope.analyzedPageCount} unique PDF pages were assessed.`;
     return;
   }
-  els["analysis-scope"].textContent = `Analysis coverage: assessed pages ${formatPageRanges(scope.analyzedPages)}. Skipped and not assessed: ${formatPageRanges(scope.skippedPages)}. Selection rule: ${scope.selectionRule ?? "not available"}`;
+  const metadataNote = scope.metadataOnlyPages?.length ? ` Page ${formatPageRanges(scope.metadataOnlyPages)} was used only for document identification, not evidence scoring.` : "";
+  els["analysis-scope"].textContent = `Analysis coverage: assessed pages ${formatPageRanges(scope.analyzedPages)}. Skipped and not assessed: ${formatPageRanges(scope.skippedPages)}.${metadataNote} Selection rule: ${scope.selectionRule ?? "not available"}`;
 }
 
 function formatPageRanges(pages = []) {

@@ -19,7 +19,7 @@ export function createPersistentAiJobQueue({ repository, providers, sleep = dela
     const chunks = chunkText(prepared.text, { chunkSize: 36_000, overlap: 600 });
     const created = await repository.createOrReuseJob({
       text,
-      metadata: { ...metadata, analysisScope: prepared.scope },
+      metadata: { ...metadata, analysisScope: prepared.scope, documentIdentification: prepared.documentIdentification },
       chunks,
     });
     if (!created.job.cacheHit) void run();
