@@ -2,6 +2,8 @@ import { chunkText } from "./llmExtractionAdapter.js";
 import { buildChunkEvidencePrompt, buildFinalMergePrompt, validateChunkEvidence, validateFinalExtraction } from "./aiEvidenceSchema.js";
 
 const retryDelayMs = 5_000;
+const chunkMaxTokens = 4_000;
+const mergeMaxTokens = 6_000;
 
 export function createPersistentAiJobQueue({ repository, providers, sleep = delay, now = () => Date.now() }) {
   let workerRunning = false;
@@ -75,7 +77,7 @@ export function createPersistentAiJobQueue({ repository, providers, sleep = dela
       const evidence = await candidate.invoke({
         prompt: buildChunkEvidencePrompt({ text: chunk.text, metadata }),
         schemaVersion: "sll-chunk-evidence.v1",
-        config: { maxTokens: 2_000 },
+        config: { maxTokens: chunkMaxTokens },
       });
       const validation = validateChunkEvidence(evidence);
       if (!validation.ok) throw new Error(`AI chunk JSON is incomplete: ${validation.missing.join(", ")}`);
@@ -120,7 +122,7 @@ export function createPersistentAiJobQueue({ repository, providers, sleep = dela
         const extraction = await candidate.invoke({
           prompt: buildFinalMergePrompt({ metadata: job.metadata, evidences: chunks.map((chunk) => chunk.evidence) }),
           schemaVersion: "sll-readiness-extraction.v1",
-          config: { maxTokens: 4_000 },
+          config: { maxTokens: mergeMaxTokens },
         });
         const validation = validateFinalExtraction(extraction);
         if (!validation.ok) throw new Error(`AI merge JSON is incomplete: ${validation.missing.join(", ")}`);
@@ -156,7 +158,7 @@ export function createPersistentAiJobQueue({ repository, providers, sleep = dela
 }
 
 function isTransient(message) {
-  return /timeout|timed out|socket|network|econnreset|und_err|\b5\d\d\b|incomplete/i.test(message);
+  return /timeout|timed out|socket|network|econnreset|und_err|\b5\d\d\b|incomplete|unexpected end|unterminated string|expected ',' or '}'/i.test(message);
 }
 
 function delay(milliseconds) {

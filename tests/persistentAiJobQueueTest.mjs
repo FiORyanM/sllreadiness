@@ -177,6 +177,29 @@ const transientCreated = await transientQueue.createJob({ text: "GHG target and 
 await waitFor(() => transientRepository.snapshot(transientCreated.job.id).status === "completed");
 assert.equal(delays.includes(5_000), true);
 
+const malformedJsonRepository = new MemoryRepository();
+const malformedJsonDelays = [];
+let malformedJsonCalls = 0;
+const malformedJsonQueue = createPersistentAiJobQueue({
+  repository: malformedJsonRepository,
+  providers: [
+    {
+      name: "gemini",
+      requestsPerMinute: 60_000,
+      invoke: async (request) => {
+        malformedJsonCalls += 1;
+        if (malformedJsonCalls === 1) throw new Error("Unexpected end of JSON input");
+        return responseFor(request);
+      },
+    },
+  ],
+  sleep: async (milliseconds) => malformedJsonDelays.push(milliseconds),
+});
+
+const malformedJsonCreated = await malformedJsonQueue.createJob({ text: "GHG target and assurance. ".repeat(30), metadata });
+await waitFor(() => malformedJsonRepository.snapshot(malformedJsonCreated.job.id).status === "completed");
+assert.equal(malformedJsonDelays.includes(5_000), true);
+
 console.log("Persistent AI job queue tests passed.");
 
 function responseFor(request) {
