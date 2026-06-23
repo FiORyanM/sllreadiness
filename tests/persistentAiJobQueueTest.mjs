@@ -83,7 +83,7 @@ const metadata = {
   truncated: false,
 };
 
-const sourceText = "Sustainability report: GHG emissions, Scope 1, Scope 2, targets, methodology, annual reporting and limited assurance. ".repeat(260);
+const sourceText = "Sustainability report: GHG emissions, Scope 1, Scope 2, targets, methodology, annual reporting and limited assurance. ".repeat(1_000);
 
 const failoverRepository = new MemoryRepository();
 let nvidiaCalls = 0;
@@ -119,7 +119,7 @@ assert.equal(failoverResult.status, "completed");
 assert.equal(failoverResult.progress.completed, failoverResult.progress.total);
 assert.equal(nvidiaCalls > 0, true);
 assert.equal(geminiCalls > 0, true);
-assert.equal(rateLimitDelays.includes(60_000), true);
+assert.equal(rateLimitDelays.includes(60_000), false);
 assert.equal(failoverResult.result.extraction.schemaVersion, sllExtractionSchemaVersion);
 
 const retryRepository = new MemoryRepository();

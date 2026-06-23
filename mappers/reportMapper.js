@@ -14,7 +14,7 @@ export function mapExtractionToReport(extraction) {
       subtitle: `${extraction.company.reportTitle} - ${fileName}`,
       generatedDate: "Generated from uploaded PDF",
       footer:
-        "Based on browser-side PDF text extraction - SLLP March 2025 - Execution cost figures are indicative estimates - Replace with Anthropic extraction before client use",
+        reportScopeFooter(extraction.source.analysisScope),
     },
     verdict: verdictFromExtraction(extraction),
     dealDefaults: extraction.dealDefaults,
@@ -34,6 +34,12 @@ export function mapExtractionToReport(extraction) {
       },
     },
   };
+}
+
+function reportScopeFooter(scope) {
+  const caveat = "SLLP March 2025 - Execution cost figures are indicative estimates - not decision-grade";
+  if (scope?.fullCoverage) return `Evidence extraction processed all ${scope.analyzedPageCount} unique PDF pages${scope.duplicatePageCount ? ` (${scope.duplicatePageCount} exact duplicates removed)` : ""} - ${caveat}`;
+  return `Based on browser-side PDF text extraction - ${caveat}`;
 }
 
 function verdictFromExtraction(extraction) {

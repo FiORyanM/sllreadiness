@@ -20,6 +20,7 @@ import { groqProvider } from "../extraction/providers/groqProvider.js";
 import { nvidiaProvider } from "../extraction/providers/nvidiaProvider.js";
 import { buildSllExtractionPrompt, sllExtractionSchemaVersion } from "../extraction/sllExtractionSchema.js";
 import { validateChunkEvidence } from "../extraction/aiEvidenceSchema.js";
+import { prepareFullPdfText } from "../extraction/pdfPagePreparation.js";
 import { calculateExecutionCost } from "../models/costModel.js";
 import { calculateScenario } from "../models/financialModel.js";
 import { weightedReadinessFromScores } from "../models/scoringModel.js";
@@ -153,6 +154,14 @@ const citedChunk = {
 };
 assert.equal(validateChunkEvidence(citedChunk, "--- PDF PAGE 2 ---\nGHG emissions target is disclosed.").ok, true);
 assert.equal(validateChunkEvidence(citedChunk, "--- PDF PAGE 3 ---\nGHG emissions target is disclosed.").ok, false);
+
+const oversizedReport = Array.from({ length: 313 }, (_, index) =>
+  `--- PDF PAGE ${index + 1} ---\nGHG emissions target methodology and assurance on unique topic ${String.fromCharCode(65 + (index % 26))}${String.fromCharCode(65 + Math.floor(index / 26))}. ${"evidence ".repeat(200)}`,
+).join("\n");
+const preparedPages = prepareFullPdfText(oversizedReport);
+assert.equal(preparedPages.scope.sourcePageCount, 313);
+assert.equal(preparedPages.scope.analyzedPageCount, 313);
+assert.equal(preparedPages.scope.fullCoverage, true);
 
 const llmExtractionResult = await extractSllReadinessWithLlm({
   text: extractedText,

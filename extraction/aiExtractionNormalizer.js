@@ -29,6 +29,7 @@ export function normalizeAiExtraction(extraction, { evidences = [], metadata } =
 
   return {
     ...extraction,
+    source: { ...extraction.source, ...(metadata ?? {}) },
     dealDefaults: normalizeDealDefaults(extraction?.dealDefaults),
     modelInputs: {
       ...extraction.modelInputs,

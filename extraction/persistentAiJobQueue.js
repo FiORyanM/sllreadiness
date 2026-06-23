@@ -1,6 +1,7 @@
 import { chunkText } from "./llmExtractionAdapter.js";
 import { buildChunkEvidencePrompt, buildFinalMergePrompt, validateChunkEvidence, validateFinalExtraction } from "./aiEvidenceSchema.js";
 import { normalizeAiExtraction } from "./aiExtractionNormalizer.js";
+import { prepareFullPdfText } from "./pdfPagePreparation.js";
 
 const retryDelayMs = 5_000;
 const rateLimitRetryDelayMs = 60_000;
@@ -12,8 +13,15 @@ export function createPersistentAiJobQueue({ repository, providers, sleep = dela
   let cleanupAt = 0;
 
   async function createJob({ text, metadata }) {
-    const chunks = chunkText(text, { chunkSize: 10_000, overlap: 500 });
-    const created = await repository.createOrReuseJob({ text, metadata, chunks });
+    const prepared = prepareFullPdfText(text);
+    // 36k characters remains within commonly available model contexts with
+    // output headroom, while avoiding hundreds of tiny serial requests.
+    const chunks = chunkText(prepared.text, { chunkSize: 36_000, overlap: 600 });
+    const created = await repository.createOrReuseJob({
+      text,
+      metadata: { ...metadata, analysisScope: prepared.scope },
+      chunks,
+    });
     if (!created.job.cacheHit) void run();
     return created;
   }
@@ -91,6 +99,16 @@ export function createPersistentAiJobQueue({ repository, providers, sleep = dela
 
   async function handleChunkError(jobId, chunk, error) {
     const message = error.message || "Unknown AI provider failure.";
+    if (isRateLimited(message) && chunk.provider_cursor + 1 < providers.length) {
+      await repository.updateChunk(chunk.id, {
+        status: "queued",
+        provider_cursor: chunk.provider_cursor + 1,
+        retry_used: false,
+        last_error: message,
+      });
+      await repository.updateJob(jobId, { stage: `Rate limited by ${providers[chunk.provider_cursor]?.name ?? "AI provider"}; switching provider for section ${chunk.position + 1}` });
+      return;
+    }
     if (isTransient(message) && !chunk.retry_used) {
       await repository.updateChunk(chunk.id, { status: "queued", retry_used: true, last_error: message });
       await repository.updateJob(jobId, { stage: isRateLimited(message) ? `Rate limited by ${providers[chunk.provider_cursor]?.name ?? "AI provider"}; retrying section ${chunk.position + 1}` : `Retrying AI analysis ${chunk.position + 1}` });
