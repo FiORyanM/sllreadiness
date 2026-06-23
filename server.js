@@ -44,6 +44,11 @@ const server = createServer(async (request, response) => {
       return;
     }
 
+    if (request.method === "POST" && extractionJobIdFromUrl(request.url, "/cancel")) {
+      await handleCancelExtractionJob(request, response);
+      return;
+    }
+
     if (request.method === "GET" && extractionJobIdFromUrl(request.url)) {
       await handleGetExtractionJob(request, response);
       return;
@@ -117,6 +122,20 @@ async function handleRetryExtractionJob(request, response) {
     return;
   }
   sendJson(response, 202, { ok: true, job });
+}
+
+async function handleCancelExtractionJob(request, response) {
+  if (!extractionJobs.queue) {
+    sendJson(response, 503, { ok: false, message: extractionJobs.error });
+    return;
+  }
+  const jobId = extractionJobIdFromUrl(request.url, "/cancel");
+  const job = await extractionJobs.queue.cancelJob(jobId, request.headers["x-extraction-job-token"]);
+  if (!job) {
+    sendJson(response, 404, { ok: false, message: "Extraction job was not found or the job token is invalid." });
+    return;
+  }
+  sendJson(response, 200, { ok: true, job });
 }
 
 function createPersistentExtractionJobs() {

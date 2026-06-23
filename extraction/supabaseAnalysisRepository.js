@@ -60,6 +60,17 @@ export class SupabaseAnalysisRepository {
     return this.snapshot(id);
   }
 
+  async cancelAuthorizedJob(id, token) {
+    const job = await this.getAuthorizedJob(id, token);
+    if (!job || ["completed", "cancelled"].includes(job.status)) return job;
+    await this.request(`/rest/v1/analysis_chunks?job_id=eq.${encodeURIComponent(id)}&status=in.(queued,processing)`, {
+      method: "PATCH",
+      body: { status: "cancelled", last_error: "Cancelled by user", updated_at: new Date().toISOString() },
+    });
+    await this.updateJob(id, { status: "cancelled", stage: "Cancelled by user", error: null });
+    return this.snapshot(id);
+  }
+
   async recoverInterruptedJobs() {
     await this.request("/rest/v1/analysis_chunks?status=eq.processing", {
       method: "PATCH",

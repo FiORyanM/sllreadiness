@@ -13,7 +13,9 @@ export function configuredAiProviders(environment = process.env) {
 
 function provider(name, invoke, apiKey, model, rpm) {
   if (!apiKey || !model) return null;
-  return { name, invoke, config: { apiKey, model }, requestsPerMinute: positiveInteger(rpm, 20) };
+  // NVIDIA model variants share one API key and therefore one upstream quota.
+  const rateLimitKey = name.startsWith("nvidia") ? "nvidia-shared-api-key" : name;
+  return { name, rateLimitKey, invoke, config: { apiKey, model }, requestsPerMinute: positiveInteger(rpm, 20) };
 }
 
 function positiveInteger(value, fallback) {

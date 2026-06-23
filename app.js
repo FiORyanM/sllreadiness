@@ -12,6 +12,7 @@ let activeReport = enrichReport(aiibFixture);
 let selectedUpload = null;
 let isExtracting = false;
 let pendingExtractionJob = null;
+let activeExtractionJob = null;
 
 const view = {
   start: document.getElementById("start-view"),
@@ -20,6 +21,7 @@ const view = {
   selectedFile: document.getElementById("selected-file"),
   uploadButton: document.getElementById("upload-preview-button"),
   retryButton: document.getElementById("retry-analysis-button"),
+  cancelButton: document.getElementById("cancel-analysis-button"),
 };
 
 const fields = {
@@ -394,7 +396,9 @@ async function handleUploadedPreview() {
     );
   } catch (error) {
     console.error(error);
-    if (error.job?.status === "capacity_exhausted") {
+    if (error.job?.status === "cancelled") {
+      setUploadStatus("AI analysis cancelled.");
+    } else if (error.job?.status === "capacity_exhausted") {
       pendingExtractionJob = error.job;
       showRetry();
       setUploadStatus("AI capacity is currently exhausted. Retry will continue only the unfinished sections.", "error");
@@ -403,6 +407,8 @@ async function handleUploadedPreview() {
     }
   } finally {
     isExtracting = false;
+    activeExtractionJob = null;
+    hideCancel();
     previewButton.disabled = false;
     previewButton.textContent = "Analyze Uploaded PDF";
   }
@@ -420,6 +426,8 @@ async function extractUploadedReport(pdfResult) {
   }
 
   saveJobToken(payload.job.id, payload.jobToken);
+  activeExtractionJob = payload.job;
+  showCancel();
   const completedJob = await pollExtractionJob(payload.job);
   if (!completedJob.result?.extraction) {
     const error = new Error(completedJob.error || "AI extraction did not return structured JSON.");
@@ -438,6 +446,8 @@ async function pollExtractionJob(initialJob) {
   let job = initialJob;
 
   while (job.status === "queued" || job.status === "processing" || job.status === "merging") {
+    activeExtractionJob = job;
+    showCancel();
     setUploadStatus(`${job.stage} (${job.progress.completed} / ${job.progress.total})`);
     await new Promise((resolve) => setTimeout(resolve, 1200));
     const response = await authorizedJobRequest(`/api/extraction-jobs/${encodeURIComponent(job.id)}`);
@@ -447,6 +457,23 @@ async function pollExtractionJob(initialJob) {
   }
 
   return job;
+}
+
+async function cancelActiveAnalysis() {
+  if (!activeExtractionJob) return;
+  view.cancelButton.disabled = true;
+  try {
+    const response = await authorizedJobRequest(`/api/extraction-jobs/${encodeURIComponent(activeExtractionJob.id)}/cancel`, { method: "POST" });
+    const payload = await safeReadJson(response);
+    if (!response.ok || !payload.ok || !payload.job) throw new Error(payload.message || "Unable to cancel AI analysis.");
+    activeExtractionJob = null;
+    hideCancel();
+    setUploadStatus("AI analysis cancelled.");
+  } catch (error) {
+    setUploadStatus(error.message, "error");
+  } finally {
+    view.cancelButton.disabled = false;
+  }
 }
 
 async function retryPendingAnalysis() {
@@ -511,6 +538,14 @@ function hideRetry() {
   view.retryButton.classList.add("is-hidden");
 }
 
+function showCancel() {
+  view.cancelButton.classList.remove("is-hidden");
+}
+
+function hideCancel() {
+  view.cancelButton.classList.add("is-hidden");
+}
+
 async function restoreActiveJob() {
   const jobId = sessionStorage.getItem("sll-active-job-id");
   if (!jobId || !loadJobToken(jobId)) return;
@@ -533,6 +568,11 @@ async function restoreActiveJob() {
       clearJobToken(job.id);
       showReport(mapExtractionToReport(job.result.extraction), "Recovered completed AI extraction.");
       return;
+    }
+
+    if (["queued", "processing", "merging"].includes(job.status)) {
+      activeExtractionJob = job;
+      showCancel();
     }
 
     if (job.status === "capacity_exhausted") {
@@ -579,6 +619,7 @@ function init() {
   });
 
   view.retryButton.addEventListener("click", retryPendingAnalysis);
+  view.cancelButton.addEventListener("click", cancelActiveAnalysis);
 
   document.addEventListener("click", (event) => {
     const analyzeButton = event.target.closest("#upload-preview-button");

@@ -19,7 +19,8 @@ export async function nvidiaProvider({ prompt, schemaVersion, config = {} }) {
 
   if (!response.ok) {
     const detail = await response.text();
-    throw new Error(`NVIDIA API failed with ${response.status}: ${detail.slice(0, 500)}`);
+    const retryAfter = response.headers?.get?.("retry-after");
+    throw new Error(`NVIDIA API failed with ${response.status}${retryAfter ? ` (retry-after ${retryAfter}s)` : ""}: ${detail.slice(0, 500)}`);
   }
 
   const payload = await response.json();

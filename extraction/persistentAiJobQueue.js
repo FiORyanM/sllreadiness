@@ -32,6 +32,10 @@ export function createPersistentAiJobQueue({ repository, providers, sleep = dela
     return job;
   }
 
+  async function cancelJob(id, token) {
+    return repository.cancelAuthorizedJob(id, token);
+  }
+
   async function resume() {
     await repository.recoverInterruptedJobs();
     void run();
@@ -58,6 +62,8 @@ export function createPersistentAiJobQueue({ repository, providers, sleep = dela
     await repository.updateJob(jobId, { status: "processing", stage: "AI analysis" });
 
     while (true) {
+      const current = await repository.getJob(jobId);
+      if (!current || current.status === "cancelled") return;
       const chunk = await repository.nextQueuedChunk(jobId);
       if (!chunk) break;
       await processChunk(job, chunk);
@@ -89,6 +95,7 @@ export function createPersistentAiJobQueue({ repository, providers, sleep = dela
         schemaVersion: "sll-chunk-evidence.v1",
         config: { maxTokens: chunkMaxTokens, ...(candidate.config ?? {}) },
       });
+      if ((await repository.getJob(job.id))?.status === "cancelled") return;
       const validation = validateChunkEvidence(evidence, chunk.text);
       if (!validation.ok) throw new Error(`AI chunk JSON is incomplete: ${validation.missing.join(", ")}`);
       await repository.updateChunk(chunk.id, { status: "completed", evidence, last_error: null });
@@ -106,12 +113,12 @@ export function createPersistentAiJobQueue({ repository, providers, sleep = dela
         retry_used: false,
         last_error: message,
       });
-      await repository.updateJob(jobId, { stage: `Rate limited by ${providers[chunk.provider_cursor]?.name ?? "AI provider"}; switching provider for section ${chunk.position + 1}` });
+      await repository.updateJob(jobId, { stage: `Rate limited by ${providers[chunk.provider_cursor]?.name ?? "AI provider"}${retryAfterLabel(message)}; switching provider for section ${chunk.position + 1}` });
       return;
     }
     if (isTransient(message) && !chunk.retry_used) {
       await repository.updateChunk(chunk.id, { status: "queued", retry_used: true, last_error: message });
-      await repository.updateJob(jobId, { stage: isRateLimited(message) ? `Rate limited by ${providers[chunk.provider_cursor]?.name ?? "AI provider"}; retrying section ${chunk.position + 1}` : `Retrying AI analysis ${chunk.position + 1}` });
+      await repository.updateJob(jobId, { stage: isRateLimited(message) ? `Rate limited by ${providers[chunk.provider_cursor]?.name ?? "AI provider"}${retryAfterLabel(message)}; retrying section ${chunk.position + 1}` : `Retrying AI analysis ${chunk.position + 1}` });
       await sleep(retryDelayFor(message));
       return;
     }
@@ -175,11 +182,11 @@ export function createPersistentAiJobQueue({ repository, providers, sleep = dela
   }
 
   async function waitForProvider(provider) {
-    const waitMs = await repository.reserveProviderSlot(provider.name, provider.requestsPerMinute);
+    const waitMs = await repository.reserveProviderSlot(provider.rateLimitKey ?? provider.name, provider.requestsPerMinute);
     if (waitMs > 0) await sleep(waitMs);
   }
 
-  return { createJob, retryJob, resume, run };
+  return { createJob, retryJob, cancelJob, resume, run };
 }
 
 function isTransient(message) {
@@ -191,7 +198,14 @@ function isRateLimited(message) {
 }
 
 function retryDelayFor(message) {
+  const retryAfterSeconds = Number(message.match(/retry-after\s+(\d+)s/i)?.[1]);
+  if (Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0) return retryAfterSeconds * 1_000;
   return isRateLimited(message) ? rateLimitRetryDelayMs : retryDelayMs;
+}
+
+function retryAfterLabel(message) {
+  const seconds = message.match(/retry-after\s+(\d+)s/i)?.[1];
+  return seconds ? ` (retry after ${seconds}s)` : "";
 }
 
 function delay(milliseconds) {
