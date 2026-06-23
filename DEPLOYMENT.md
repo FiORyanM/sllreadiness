@@ -29,6 +29,8 @@ NVIDIA_MODEL=deepseek-ai/deepseek-v4-flash
 NVIDIA_API_URL=https://integrate.api.nvidia.com/v1/chat/completions
 NVIDIA_REQUESTS_PER_MINUTE=20
 NVIDIA_REQUEST_TIMEOUT_MS=45000
+NVIDIA_QWEN_MODEL=your-nvidia-build-qwen-model
+NVIDIA_QWEN_REQUESTS_PER_MINUTE=20
 
 GEMINI_MODEL=your-gemini-model
 GEMINI_REQUESTS_PER_MINUTE=15

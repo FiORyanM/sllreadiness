@@ -78,7 +78,7 @@ export function createPersistentAiJobQueue({ repository, providers, sleep = dela
       const evidence = await candidate.invoke({
         prompt: buildChunkEvidencePrompt({ text: chunk.text, metadata }),
         schemaVersion: "sll-chunk-evidence.v1",
-        config: { maxTokens: chunkMaxTokens },
+        config: { maxTokens: chunkMaxTokens, ...(candidate.config ?? {}) },
       });
       const validation = validateChunkEvidence(evidence);
       if (!validation.ok) throw new Error(`AI chunk JSON is incomplete: ${validation.missing.join(", ")}`);
@@ -124,7 +124,7 @@ export function createPersistentAiJobQueue({ repository, providers, sleep = dela
         const extraction = await candidate.invoke({
           prompt: buildFinalMergePrompt({ metadata: job.metadata, evidences: chunks.map((chunk) => chunk.evidence) }),
           schemaVersion: "sll-readiness-extraction.v1",
-          config: { maxTokens: mergeMaxTokens },
+          config: { maxTokens: mergeMaxTokens, ...(candidate.config ?? {}) },
         });
         const validation = validateFinalExtraction(extraction);
         if (!validation.ok) throw new Error(`AI merge JSON is incomplete: ${validation.missing.join(", ")}`);

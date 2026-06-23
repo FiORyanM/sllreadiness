@@ -12,6 +12,7 @@ import { extractSllReadinessJson, validateSllExtractionJson } from "../extractio
 import { extractSllReadinessWithLlm, normalizeLlmExtractionResponse } from "../extraction/llmExtractionAdapter.js";
 import { createExtractionJobQueue } from "../extraction/extractionJobQueue.js";
 import { deepseekProvider } from "../extraction/providers/deepseekProvider.js";
+import { configuredAiProviders } from "../extraction/aiProviderPool.js";
 import { geminiProvider } from "../extraction/providers/geminiProvider.js";
 import { groqProvider } from "../extraction/providers/groqProvider.js";
 import { nvidiaProvider } from "../extraction/providers/nvidiaProvider.js";
@@ -21,6 +22,19 @@ import { calculateScenario } from "../models/financialModel.js";
 import { weightedReadinessFromScores } from "../models/scoringModel.js";
 
 const scoring = weightedReadinessFromScores(aiibFixture.modelInputs.componentsByKey);
+
+const nvidiaModelPool = configuredAiProviders({
+  NVIDIA_API_KEY: "test-nvidia-key",
+  NVIDIA_MODEL: "deepseek-ai/deepseek-v4-flash",
+  NVIDIA_REQUESTS_PER_MINUTE: "20",
+  NVIDIA_QWEN_MODEL: "qwen/qwen3-32b",
+  NVIDIA_QWEN_REQUESTS_PER_MINUTE: "15",
+});
+
+assert.deepEqual(nvidiaModelPool.map((provider) => provider.name), ["nvidia", "nvidia-qwen"]);
+assert.equal(nvidiaModelPool[0].config.model, "deepseek-ai/deepseek-v4-flash");
+assert.equal(nvidiaModelPool[1].config.model, "qwen/qwen3-32b");
+assert.equal(nvidiaModelPool[1].requestsPerMinute, 15);
 
 assert.equal(scoring.band, "high");
 assert.equal(scoring.score100, 88);
