@@ -28,8 +28,8 @@ export function prepareFullPdfText(text) {
     return true;
   });
 
-  const selected = uniquePages.filter((page) => page.number <= 3 || pageSignals(page.text).length >= 2);
-  if (!selected.length) selected.push(...uniquePages.slice(0, 3));
+  const selected = uniquePages.filter((page) => shouldAnalyzePage(pageSignals(page.text)));
+  if (!selected.length) selected.push(...uniquePages.slice(0, 1));
   selected.sort((left, right) => left.number - right.number);
   const analyzedPages = selected.map((page) => page.number);
   const skippedPages = pages.map((page) => page.number).filter((pageNumber) => !analyzedPages.includes(pageNumber));
@@ -44,7 +44,7 @@ export function prepareFullPdfText(text) {
       fullCoverage: skippedPages.length === 0,
       analyzedPages,
       skippedPages,
-      selectionRule: "Pages 1–3, plus pages with at least two distinct SLL evidence signals: emissions, targets, methodology, verification, reporting, or strategy.",
+      selectionRule: "Any page with emissions, targets, methodology, or independent verification; or a page with at least two distinct signals among emissions, targets, methodology, verification, reporting, and strategy. A single generic reporting or strategy reference is not enough.",
     },
   };
 }
@@ -53,6 +53,11 @@ function pageSignals(text) {
   return Object.entries(evidenceSignals)
     .filter(([, pattern]) => pattern.test(text))
     .map(([name]) => name);
+}
+
+function shouldAnalyzePage(signals) {
+  const strongStandaloneSignals = new Set(["emissions", "targets", "methodology", "verification"]);
+  return signals.some((signal) => strongStandaloneSignals.has(signal)) || signals.length >= 2;
 }
 
 function splitPages(text) {

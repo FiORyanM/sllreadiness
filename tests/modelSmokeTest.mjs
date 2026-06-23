@@ -162,7 +162,7 @@ const preparedPages = prepareFullPdfText(oversizedReport);
 assert.equal(preparedPages.scope.sourcePageCount, 313);
 assert.equal(preparedPages.scope.analyzedPageCount, 313);
 assert.equal(preparedPages.scope.skippedPages.length, 0);
-assert.match(preparedPages.scope.selectionRule, /at least two distinct SLL evidence signals/);
+assert.match(preparedPages.scope.selectionRule, /Any page with emissions, targets, methodology, or independent verification/);
 
 const mixedRelevanceReport = [
   "--- PDF PAGE 1 ---\nCover page",
@@ -172,8 +172,11 @@ const mixedRelevanceReport = [
   "--- PDF PAGE 5 ---\nGHG emissions target and independent assurance.",
 ].join("\n");
 const mixedPages = prepareFullPdfText(mixedRelevanceReport);
-assert.deepEqual(mixedPages.scope.analyzedPages, [1, 2, 3, 5]);
-assert.deepEqual(mixedPages.scope.skippedPages, [4]);
+assert.deepEqual(mixedPages.scope.analyzedPages, [5]);
+assert.deepEqual(mixedPages.scope.skippedPages, [1, 2, 3, 4]);
+
+const singleSignalReport = "--- PDF PAGE 1 ---\nIndependent assurance statement by an external auditor.";
+assert.deepEqual(prepareFullPdfText(singleSignalReport).scope.analyzedPages, [1]);
 
 const llmExtractionResult = await extractSllReadinessWithLlm({
   text: extractedText,
