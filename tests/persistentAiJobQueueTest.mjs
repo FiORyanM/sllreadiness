@@ -88,6 +88,7 @@ const sourceText = "Sustainability report: GHG emissions, Scope 1, Scope 2, targ
 const failoverRepository = new MemoryRepository();
 let nvidiaCalls = 0;
 let geminiCalls = 0;
+const rateLimitDelays = [];
 const failoverQueue = createPersistentAiJobQueue({
   repository: failoverRepository,
   providers: [
@@ -108,7 +109,7 @@ const failoverQueue = createPersistentAiJobQueue({
       },
     },
   ],
-  sleep: async () => {},
+  sleep: async (milliseconds) => rateLimitDelays.push(milliseconds),
 });
 
 const failoverCreated = await failoverQueue.createJob({ text: sourceText, metadata: { ...metadata, extractedCharCount: sourceText.length } });
@@ -118,6 +119,7 @@ assert.equal(failoverResult.status, "completed");
 assert.equal(failoverResult.progress.completed, failoverResult.progress.total);
 assert.equal(nvidiaCalls > 0, true);
 assert.equal(geminiCalls > 0, true);
+assert.equal(rateLimitDelays.includes(60_000), true);
 assert.equal(failoverResult.result.extraction.schemaVersion, sllExtractionSchemaVersion);
 
 const retryRepository = new MemoryRepository();

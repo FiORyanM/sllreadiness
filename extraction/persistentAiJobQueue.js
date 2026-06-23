@@ -2,6 +2,7 @@ import { chunkText } from "./llmExtractionAdapter.js";
 import { buildChunkEvidencePrompt, buildFinalMergePrompt, validateChunkEvidence, validateFinalExtraction } from "./aiEvidenceSchema.js";
 
 const retryDelayMs = 5_000;
+const rateLimitRetryDelayMs = 60_000;
 const chunkMaxTokens = 4_000;
 const mergeMaxTokens = 6_000;
 
@@ -91,7 +92,8 @@ export function createPersistentAiJobQueue({ repository, providers, sleep = dela
     const message = error.message || "Unknown AI provider failure.";
     if (isTransient(message) && !chunk.retry_used) {
       await repository.updateChunk(chunk.id, { status: "queued", retry_used: true, last_error: message });
-      await sleep(retryDelayMs);
+      await repository.updateJob(jobId, { stage: isRateLimited(message) ? `Rate limited by ${providers[chunk.provider_cursor]?.name ?? "AI provider"}; retrying section ${chunk.position + 1}` : `Retrying AI analysis ${chunk.position + 1}` });
+      await sleep(retryDelayFor(message));
       return;
     }
     const nextProvider = chunk.provider_cursor + 1;
@@ -158,7 +160,15 @@ export function createPersistentAiJobQueue({ repository, providers, sleep = dela
 }
 
 function isTransient(message) {
-  return /timeout|timed out|socket|network|econnreset|und_err|\b5\d\d\b|incomplete|unexpected end|unterminated string|expected ',' or '}'/i.test(message);
+  return /timeout|timed out|socket|network|econnreset|und_err|\b429\b|\b5\d\d\b|incomplete|unexpected end|unterminated string|expected ',' or '}'/i.test(message);
+}
+
+function isRateLimited(message) {
+  return /\b429\b|rate limit|resource exhausted|quota/i.test(message);
+}
+
+function retryDelayFor(message) {
+  return isRateLimited(message) ? rateLimitRetryDelayMs : retryDelayMs;
 }
 
 function delay(milliseconds) {
