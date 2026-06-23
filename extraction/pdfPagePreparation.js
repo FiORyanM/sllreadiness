@@ -1,9 +1,14 @@
-const maxAnalysisChars = 360_000;
-const maxSelectedPages = 90;
-const relevancePattern = /\b(ghg|greenhouse gas|emissions?|scope\s*[123]|climate|energy|renewable|target|baseline|methodolog|assurance|verif|audit|science[-\s]?based|sbti|sustainab|materiality|gri|sasb|issb|tcfd|governance|transition|net[-\s]?zero|kpi|metric)\b/gi;
+const evidenceSignals = {
+  emissions: /\b(ghg|greenhouse gas|emissions?|scope\s*[123]|carbon footprint)\b/i,
+  targets: /\b(target|baseline|base year|spt|net[-\s]?zero|science[-\s]?based|sbti)\b/i,
+  methodology: /\b(methodolog|calculation|ghg protocol|iso 14064|organizational boundary|operational boundary)\b/i,
+  verification: /\b(limited assurance|reasonable assurance|independent assurance|external verification|third[-\s]?party verification|audit)\b/i,
+  reporting: /\b(gri|sasb|issb|tcfd|annual sustainability report|integrated report)\b/i,
+  strategy: /\b(transition plan|climate strategy|materiality|sustainability governance|climate action plan)\b/i,
+};
 
 /**
- * Selects the most SLL-relevant unique pages to bound AI calls. The exact
+ * Selects pages using an explainable, no-cap SLL evidence rule. The exact
  * skipped page numbers are retained in scope metadata and shown in the report.
  */
 export function prepareFullPdfText(text) {
@@ -23,19 +28,7 @@ export function prepareFullPdfText(text) {
     return true;
   });
 
-  const ranked = uniquePages
-    .map((page) => ({ ...page, relevance: scorePage(page.text), introductory: page.number <= 3 }))
-    .sort((left, right) => right.relevance - left.relevance || Number(right.introductory) - Number(left.introductory) || left.number - right.number);
-  const selected = [];
-  let usedChars = 0;
-  for (const page of ranked) {
-    if (selected.length >= maxSelectedPages || usedChars >= maxAnalysisChars) continue;
-    if (!page.introductory && page.relevance === 0) continue;
-    const remaining = maxAnalysisChars - usedChars - 32;
-    const selectedPage = { ...page, text: page.text.slice(0, remaining) };
-    selected.push(selectedPage);
-    usedChars += `--- PDF PAGE ${selectedPage.number} ---\n${selectedPage.text}`.length;
-  }
+  const selected = uniquePages.filter((page) => page.number <= 3 || pageSignals(page.text).length >= 2);
   if (!selected.length) selected.push(...uniquePages.slice(0, 3));
   selected.sort((left, right) => left.number - right.number);
   const analyzedPages = selected.map((page) => page.number);
@@ -51,12 +44,15 @@ export function prepareFullPdfText(text) {
       fullCoverage: skippedPages.length === 0,
       analyzedPages,
       skippedPages,
+      selectionRule: "Pages 1–3, plus pages with at least two distinct SLL evidence signals: emissions, targets, methodology, verification, reporting, or strategy.",
     },
   };
 }
 
-function scorePage(text) {
-  return text.match(relevancePattern)?.length ?? 0;
+function pageSignals(text) {
+  return Object.entries(evidenceSignals)
+    .filter(([, pattern]) => pattern.test(text))
+    .map(([name]) => name);
 }
 
 function splitPages(text) {

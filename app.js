@@ -175,7 +175,7 @@ function renderAnalysisScope(scope) {
     els["analysis-scope"].textContent = `Analysis coverage: all ${scope.analyzedPageCount} unique PDF pages were assessed.`;
     return;
   }
-  els["analysis-scope"].textContent = `Analysis coverage: assessed pages ${formatPageRanges(scope.analyzedPages)}. Skipped and not assessed: ${formatPageRanges(scope.skippedPages)}.`;
+  els["analysis-scope"].textContent = `Analysis coverage: assessed pages ${formatPageRanges(scope.analyzedPages)}. Skipped and not assessed: ${formatPageRanges(scope.skippedPages)}. Selection rule: ${scope.selectionRule ?? "not available"}`;
 }
 
 function formatPageRanges(pages = []) {

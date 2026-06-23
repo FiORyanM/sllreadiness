@@ -160,8 +160,20 @@ const oversizedReport = Array.from({ length: 313 }, (_, index) =>
 ).join("\n");
 const preparedPages = prepareFullPdfText(oversizedReport);
 assert.equal(preparedPages.scope.sourcePageCount, 313);
-assert.equal(preparedPages.scope.analyzedPageCount <= 90, true);
-assert.equal(preparedPages.scope.skippedPages.length > 0, true);
+assert.equal(preparedPages.scope.analyzedPageCount, 313);
+assert.equal(preparedPages.scope.skippedPages.length, 0);
+assert.match(preparedPages.scope.selectionRule, /at least two distinct SLL evidence signals/);
+
+const mixedRelevanceReport = [
+  "--- PDF PAGE 1 ---\nCover page",
+  "--- PDF PAGE 2 ---\nContents",
+  "--- PDF PAGE 3 ---\nAbout this report",
+  "--- PDF PAGE 4 ---\nSustainability is important to us.",
+  "--- PDF PAGE 5 ---\nGHG emissions target and independent assurance.",
+].join("\n");
+const mixedPages = prepareFullPdfText(mixedRelevanceReport);
+assert.deepEqual(mixedPages.scope.analyzedPages, [1, 2, 3, 5]);
+assert.deepEqual(mixedPages.scope.skippedPages, [4]);
 
 const llmExtractionResult = await extractSllReadinessWithLlm({
   text: extractedText,
