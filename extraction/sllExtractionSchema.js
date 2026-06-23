@@ -38,9 +38,10 @@ export function buildSllExtractionPrompt({ text, metadata }) {
 
 const componentContract = {
   name: "string",
-  score: "number from 0 to 100",
+  score: "number from 0 to 100, or null when evidence is insufficient",
   maturity: "high | medium | low | absent",
-  status: "High | Partial | Gap",
+  status: "High | Partial | Gap | Insufficient evidence",
+  citations: [{ quote: "string", pages: ["integer PDF page number"] }],
 };
 
 const alignmentContract = {
@@ -88,8 +89,9 @@ export const sllExtractionJsonContract = {
       {
         name: "string",
         evidence: "short evidence snippet or reason evidence is missing",
-        status: "Ready | Partial",
+        status: "Ready | Partial | Insufficient evidence",
         confidence: "high | medium | low",
+        citations: [{ quote: "string", pages: ["integer PDF page number"] }],
       },
     ],
     gaps: [
@@ -97,6 +99,7 @@ export const sllExtractionJsonContract = {
         title: "string",
         description: "string",
         severity: "High | Medium | Low",
+        citations: [{ quote: "string", pages: ["integer PDF page number"] }],
       },
     ],
     sllpAlignment: {
@@ -131,7 +134,7 @@ export function validateSllExtractionContract(extraction) {
   for (const key of sllComponentKeys) {
     const component = extraction?.modelInputs?.componentsByKey?.[key];
     if (!component?.maturity) missing.push(`modelInputs.componentsByKey.${key}.maturity`);
-    if (typeof component?.score !== "number") missing.push(`modelInputs.componentsByKey.${key}.score`);
+    if (typeof component?.score !== "number" && component?.score !== null) missing.push(`modelInputs.componentsByKey.${key}.score`);
   }
 
   for (const key of sllpCoreComponentKeys) {

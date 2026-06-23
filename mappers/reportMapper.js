@@ -1,4 +1,8 @@
+import { normalizeAiExtraction } from "../extraction/aiExtractionNormalizer.js";
+import { weightedReadinessFromScores } from "../models/scoringModel.js";
+
 export function mapExtractionToReport(extraction) {
+  extraction = normalizeAiExtraction(extraction);
   const companyName = extraction.company.name || "Uploaded company";
   const reportingYear = extraction.company.reportingYear || "latest";
   const fileName = extraction.source.fileName;
@@ -20,6 +24,7 @@ export function mapExtractionToReport(extraction) {
         name: kpi.name,
         evidence: confidenceSuffix(kpi.evidence, kpi.confidence),
         status: kpi.status,
+        citations: kpi.citations,
       })),
       gaps: extraction.analysis.gaps,
       baseMarginNote: extraction.analysis.baseMarginNote,
@@ -32,20 +37,28 @@ export function mapExtractionToReport(extraction) {
 }
 
 function verdictFromExtraction(extraction) {
-  const readyKpis = extraction.analysis.kpis.filter((kpi) => kpi.status === "Ready").length;
-  const materialGaps = extraction.analysis.gaps.filter((gap) => gap.severity === "Medium" || gap.severity === "High").length;
-  const hasVerificationGate = extraction.modelInputs.componentsByKey.externalVerification?.score >= 75;
-
-  if (readyKpis >= 2 && materialGaps <= 1 && hasVerificationGate) {
+  if (extraction.modelInputs.assessmentState !== "assessed") {
     return {
-      title: "SLL-viable - proceed to evidence review",
-      copy: "The uploaded report shows enough KPI, reporting and verification signals for a first-pass SLL discussion.",
+      title: "Potential SLL candidate — insufficient cited evidence",
+      copy: "This report has not been scored because one or more SLL readiness components lack a quoted, page-level source. It requires evidence review before any SLL conclusion.",
     };
   }
 
-  if (readyKpis >= 1 || materialGaps <= 3) {
+  const readyKpis = extraction.analysis.kpis.filter((kpi) => kpi.status === "Ready").length;
+  const materialGaps = extraction.analysis.gaps.filter((gap) => gap.severity === "Medium" || gap.severity === "High").length;
+  const hasVerificationGate = extraction.modelInputs.componentsByKey.externalVerification?.score >= 75;
+  const readiness = weightedReadinessFromScores(extraction.modelInputs.componentsByKey).score100;
+
+  if (readiness >= 75 && readyKpis >= 2 && materialGaps <= 1 && hasVerificationGate) {
     return {
-      title: "Potentially SLL-viable - gaps to close",
+      title: "Potential SLL candidate — evidence review required",
+      copy: "The uploaded report has cited KPI, reporting and verification signals that warrant a first-pass SLL discussion; this is not a lender decision.",
+    };
+  }
+
+  if (readiness >= 40 && readyKpis >= 1) {
+    return {
+      title: "Potential SLL candidate — gaps to close",
       copy: hasVerificationGate
         ? "The uploaded report contains usable ESG signals, but lender-ready KPI/SPT evidence needs review."
         : "The uploaded report contains usable ESG signals, but SLLP external verification evidence needs confirmation before it can be treated as lender-ready.",
@@ -53,7 +66,7 @@ function verdictFromExtraction(extraction) {
   }
 
   return {
-    title: "Not yet SLL-ready - build KPI evidence first",
+    title: "Not yet a potential SLL candidate — build cited evidence",
     copy: "The uploaded report needs stronger KPI history, methodology or verification before outreach.",
   };
 }

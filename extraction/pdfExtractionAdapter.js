@@ -60,10 +60,12 @@ export async function extractPdfText(file) {
   for (let pageNumber = 1; pageNumber <= document.numPages; pageNumber += 1) {
     const page = await document.getPage(pageNumber);
     const content = await page.getTextContent();
-    pageText.push(content.items.map((item) => item.str).join(" "));
+    pageText.push(normalizeExtractedText(content.items.map((item) => item.str).join(" ")));
   }
 
-  const text = normalizeExtractedText(pageText.join("\n\n"));
+  // Preserve page boundaries all the way to the AI prompts. Citations are not
+  // meaningful if the model cannot identify the page that contained the text.
+  const text = pageText.map((value, index) => `--- PDF PAGE ${index + 1} ---\n${value}`).join("\n\n");
   const pageCount = document.numPages;
   const imageObjectCount = 0;
   const textOperatorCount = pageText.filter(Boolean).length;

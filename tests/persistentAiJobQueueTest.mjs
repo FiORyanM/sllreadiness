@@ -209,7 +209,7 @@ function responseFor(request) {
     return {
       schemaVersion: "sll-chunk-evidence.v1",
       companyHints: { name: "Test company", reportTitle: "Test ESG report", reportingYear: "2024" },
-      evidence: [{ topic: "KPI", finding: "GHG emissions target disclosed", sourceQuote: "GHG emissions target", confidence: "high" }],
+      evidence: [{ topic: "KPI", finding: "GHG emissions target disclosed", sourceQuote: "GHG emissions target", pageNumbers: [1], confidence: "high" }],
       notes: [],
     };
   }

@@ -236,12 +236,25 @@ export function chunkText(text, { chunkSize, overlap }) {
   while (start < text.length) {
     const hardEnd = Math.min(start + chunkSize, text.length);
     const softEnd = findSoftBreak(text, start, hardEnd);
-    chunks.push(text.slice(start, softEnd));
+    const chunk = text.slice(start, softEnd);
+    // A chunk can start after its page marker because of overlap. Restore the
+    // current marker so the evidence extractor can make an auditable citation.
+    chunks.push(withCurrentPageMarker(text, start, chunk));
     if (softEnd >= text.length) break;
     start = Math.max(softEnd - overlap, start + 1);
   }
 
   return chunks;
+}
+
+function withCurrentPageMarker(text, start, chunk) {
+  if (chunk.startsWith("--- PDF PAGE")) return chunk;
+  const beforeChunk = text.slice(0, start);
+  const markerStart = beforeChunk.lastIndexOf("--- PDF PAGE ");
+  if (markerStart === -1) return chunk;
+  const markerEnd = text.indexOf("\n", markerStart);
+  if (markerEnd === -1) return chunk;
+  return `${text.slice(markerStart, markerEnd)}\n${chunk}`;
 }
 
 function findSoftBreak(text, start, hardEnd) {

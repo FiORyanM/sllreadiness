@@ -356,6 +356,22 @@ input {
   margin-top: 12px;
 }
 
+.safety-disclaimer {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 1px solid #e5c889;
+  border-left: 4px solid var(--gold);
+  background: var(--gold-soft);
+  color: #5d4520;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.safety-disclaimer ul {
+  margin: 7px 0 0;
+  padding-left: 18px;
+}
+
 .calculator-panel,
 .gap-panel {
   min-width: 0;
@@ -441,6 +457,19 @@ input {
   font-size: 12px;
   font-weight: 700;
   text-align: right;
+}
+
+.evidence-citation,
+.abstention-copy {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: #52656c;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.evidence-citation strong {
+  color: var(--deep);
 }
 
 .assumption-grid {
@@ -668,6 +697,11 @@ dl .total dd {
 .severity-medium {
   background: var(--gold-soft);
   color: #7a5418;
+}
+
+.status-insufficient {
+  background: #edf1f3;
+  color: #53636d;
 }
 
 .severity-low {

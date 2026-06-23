@@ -10,6 +10,7 @@ const chunkEvidenceContract = {
       topic: "KPI | target | methodology | reporting | verification | strategy | gap",
       finding: "short factual finding",
       sourceQuote: "short source quote",
+      pageNumbers: ["integer PDF page number containing sourceQuote"],
       confidence: "high | medium | low",
     },
   ],
@@ -22,6 +23,7 @@ export function buildChunkEvidencePrompt({ text, metadata }) {
     `Assess against ${sllpStandard}.`,
     "Return strict JSON only. Do not score the company, invent facts, or write markdown.",
     "Keep sourceQuote under 240 characters and return at most 12 evidence items.",
+    "Every evidence item must quote the supplied text exactly and include the PDF page number from a --- PDF PAGE N --- marker. Do not create an evidence item when either is unavailable.",
     "If a topic is absent, omit it instead of guessing.",
     "Required JSON shape:",
     JSON.stringify(chunkEvidenceContract),
@@ -32,7 +34,7 @@ export function buildChunkEvidencePrompt({ text, metadata }) {
   ].join("\n");
 }
 
-export function validateChunkEvidence(value) {
+export function validateChunkEvidence(value, sourceText = "") {
   const missing = [];
   if (value?.schemaVersion !== chunkEvidenceSchemaVersion) missing.push("schemaVersion");
   if (!Array.isArray(value?.evidence)) missing.push("evidence");
@@ -41,9 +43,34 @@ export function validateChunkEvidence(value) {
   for (const [index, item] of (value?.evidence ?? []).entries()) {
     if (!item?.topic) missing.push(`evidence.${index}.topic`);
     if (!item?.finding) missing.push(`evidence.${index}.finding`);
+    if (!item?.sourceQuote) missing.push(`evidence.${index}.sourceQuote`);
+    if (!Array.isArray(item?.pageNumbers) || item.pageNumbers.length === 0 || item.pageNumbers.some((page) => !Number.isInteger(page) || page < 1)) {
+      missing.push(`evidence.${index}.pageNumbers`);
+    }
+    if (sourceText.includes("--- PDF PAGE") && !quoteAppearsOnClaimedPage(item?.sourceQuote, item?.pageNumbers, sourceText)) {
+      missing.push(`evidence.${index}.sourceQuote/pageNumbers`);
+    }
   }
 
   return { ok: missing.length === 0, missing };
+}
+
+function quoteAppearsOnClaimedPage(quote, pages, sourceText) {
+  if (!quote || !Array.isArray(pages)) return false;
+  const normalizedQuote = normalizeForMatch(quote);
+  return pages.some((page) => normalizeForMatch(pageText(sourceText, page)).includes(normalizedQuote));
+}
+
+function pageText(text, pageNumber) {
+  const marker = `--- PDF PAGE ${pageNumber} ---`;
+  const start = text.indexOf(marker);
+  if (start === -1) return "";
+  const nextMarker = text.indexOf("--- PDF PAGE ", start + marker.length);
+  return text.slice(start + marker.length, nextMarker === -1 ? text.length : nextMarker);
+}
+
+function normalizeForMatch(value) {
+  return String(value).replace(/\s+/g, " ").trim().toLowerCase();
 }
 
 export function buildFinalMergePrompt({ metadata, evidences }) {
@@ -51,6 +78,11 @@ export function buildFinalMergePrompt({ metadata, evidences }) {
     "You are producing a final SLL readiness extraction from AI-extracted evidence.",
     `Use ${sllpStandard} as the assessment reference.`,
     "Return strict JSON only. Do not invent facts. Mark unsupported matters as Needs review.",
+    "A general ESG report is not expected to contain SLL loan documentation. Do not treat the absence of SLLP or loan wording as a readiness gap; use Needs review for loan characteristics instead.",
+    "Score every readiness component from 0 to 100 using the supplied evidence and make High / Partial / Gap agree with that score. Do not use all-zero scores when the evidence contains ESG metrics, targets, reporting, or assurance.",
+    "If no actual loan facility is evidenced, use these illustrative deal assumptions exactly: loanSizeM 500, tenor 5, baseMargin 150, ratchetBest 10, ratchetWorst 5. Never use zero placeholders.",
+    "List only genuine evidence or execution gaps, such as missing KPI history, methodology, SPT calibration, reporting, or verification.",
+    "Every component, KPI and gap must include one or more citations copied from the supplied evidence. If supporting citations are unavailable, use score null and status Insufficient evidence for that component or KPI; omit an unsupported gap.",
     "The result must follow this exact contract:",
     JSON.stringify(finalExtractionContract),
     "Source metadata:",
@@ -72,16 +104,16 @@ const finalExtractionContract = {
     bestCaseSetupFloors: {},
     worstCaseExcludedDrivers: [],
     componentsByKey: {
-      kpiDataHistory: { name: "string", score: "number", maturity: "high | medium | low | absent", status: "High | Partial | Gap" },
-      kpiMethodology: { name: "string", score: "number", maturity: "high | medium | low | absent", status: "High | Partial | Gap" },
-      reportingInfrastructure: { name: "string", score: "number", maturity: "high | medium | low | absent", status: "High | Partial | Gap" },
-      externalVerification: { name: "string", score: "number", maturity: "high | medium | low | absent", status: "High | Partial | Gap" },
-      strategicAlignment: { name: "string", score: "number", maturity: "high | medium | low | absent", status: "High | Partial | Gap" },
+      kpiDataHistory: { name: "string", score: "number | null", maturity: "high | medium | low | absent", status: "High | Partial | Gap | Insufficient evidence", citations: [{ quote: "string", pages: ["number"] }] },
+      kpiMethodology: { name: "string", score: "number | null", maturity: "high | medium | low | absent", status: "High | Partial | Gap | Insufficient evidence", citations: [{ quote: "string", pages: ["number"] }] },
+      reportingInfrastructure: { name: "string", score: "number | null", maturity: "high | medium | low | absent", status: "High | Partial | Gap | Insufficient evidence", citations: [{ quote: "string", pages: ["number"] }] },
+      externalVerification: { name: "string", score: "number | null", maturity: "high | medium | low | absent", status: "High | Partial | Gap | Insufficient evidence", citations: [{ quote: "string", pages: ["number"] }] },
+      strategicAlignment: { name: "string", score: "number | null", maturity: "high | medium | low | absent", status: "High | Partial | Gap | Insufficient evidence", citations: [{ quote: "string", pages: ["number"] }] },
     },
   },
   analysis: {
-    kpis: [{ name: "string", evidence: "string", status: "Ready | Partial", confidence: "high | medium | low" }],
-    gaps: [{ title: "string", description: "string", severity: "High | Medium | Low" }],
+    kpis: [{ name: "string", evidence: "string", status: "Ready | Partial | Insufficient evidence", confidence: "high | medium | low", citations: [{ quote: "string", pages: ["number"] }] }],
+    gaps: [{ title: "string", description: "string", severity: "High | Medium | Low", citations: [{ quote: "string", pages: ["number"] }] }],
     sllpAlignment: {
       standard: sllpStandard,
       coreComponents: {

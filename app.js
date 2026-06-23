@@ -71,29 +71,58 @@ const ids = [
 const els = Object.fromEntries(ids.map((id) => [id, document.getElementById(id)]));
 
 function enrichReport(report) {
-  const scoring = weightedReadinessFromScores(report.modelInputs.componentsByKey);
+  const componentsByKey = Object.fromEntries(
+    Object.entries(report.modelInputs.componentsByKey).map(([key, component]) => {
+      const citations = validCitations(component.citations);
+      if (citations.length > 0) return [key, { ...component, citations }];
+      return [key, { ...component, score: null, maturity: "absent", status: "Insufficient evidence", citations: [] }];
+    }),
+  );
+  const isAssessed = Object.values(componentsByKey).every((component) => component.citations.length > 0);
+  const analysis = {
+    ...report.analysis,
+    kpis: report.analysis.kpis.map((kpi) => {
+      const citations = validCitations(kpi.citations);
+      return citations.length > 0
+        ? { ...kpi, citations }
+        : { ...kpi, status: "Insufficient evidence", evidence: "Insufficient cited evidence to assess this KPI candidate.", citations: [] };
+    }),
+    gaps: report.analysis.gaps.filter((gap) => validCitations(gap.citations).length > 0).map((gap) => ({ ...gap, citations: validCitations(gap.citations) })),
+  };
+  const modelInputs = {
+    ...report.modelInputs,
+    componentsByKey,
+    assessmentState: isAssessed ? "assessed" : "insufficient_evidence",
+  };
+  const scoring = weightedReadinessFromScores(componentsByKey);
   const executionCost = calculateExecutionCost({
     readinessBand: scoring.band,
-    kpiCount: report.modelInputs.recommendedKpiCount,
+    kpiCount: modelInputs.recommendedKpiCount,
     tenor: report.dealDefaults.tenor,
-    hasLowConfidence: report.modelInputs.hasLowConfidence,
+    hasLowConfidence: modelInputs.hasLowConfidence,
     options: {
-      bestCaseSetupFloors: report.modelInputs.bestCaseSetupFloors,
-      worstCaseExcludedDrivers: report.modelInputs.worstCaseExcludedDrivers,
+      bestCaseSetupFloors: modelInputs.bestCaseSetupFloors,
+      worstCaseExcludedDrivers: modelInputs.worstCaseExcludedDrivers,
     },
   });
 
   return {
     ...report,
+    modelInputs,
     analysis: {
-      ...report.analysis,
+      ...analysis,
       readinessScore: scoring.score100,
       readinessBand: readinessBandLabel(scoring.band),
       executionCost,
-      components: Object.values(report.modelInputs.componentsByKey),
+      components: Object.values(componentsByKey),
       scoring,
+      assessmentState: modelInputs.assessmentState,
     },
   };
+}
+
+function validCitations(citations = []) {
+  return citations.filter((citation) => citation?.quote && Array.isArray(citation.pages) && citation.pages.length > 0);
 }
 
 function readInputs() {
@@ -127,8 +156,9 @@ function renderReportMeta(report) {
   els["generated-date"].textContent = report.company.generatedDate;
   els["verdict-title"].textContent = report.verdict.title;
   els["verdict-copy"].textContent = report.verdict.copy;
-  els["overall-readiness"].textContent = `${report.analysis.readinessScore} / 100`;
-  els["readiness-band"].textContent = report.analysis.readinessBand;
+  const isAssessed = report.analysis.assessmentState === "assessed";
+  els["overall-readiness"].textContent = isAssessed ? `${report.analysis.readinessScore} / 100` : "Not assessed";
+  els["readiness-band"].textContent = isAssessed ? report.analysis.readinessBand : "Insufficient cited evidence";
   els["base-margin-note"].textContent = report.analysis.baseMarginNote;
   els["report-footer"].textContent = report.company.footer;
 }
@@ -139,12 +169,13 @@ function renderComponents(report) {
     .map(
       (component) => `
         <div class="component-row">
-          <div class="component-name">${component.name}</div>
-          <div class="component-score">${component.score}%</div>
-          <div class="component-status">${component.status}</div>
-          <div class="bar" aria-label="${component.name} score ${component.score}%">
-            <span style="width: ${component.score}%"></span>
+          <div class="component-name">${escapeHtml(component.name)}</div>
+          <div class="component-score">${component.score === null ? "—" : `${component.score}%`}</div>
+          <div class="component-status">${escapeHtml(component.status)}</div>
+          <div class="bar" aria-label="${escapeHtml(component.name)} score ${component.score ?? "not assessed"}">
+            <span style="width: ${component.score ?? 0}%"></span>
           </div>
+          ${renderCitations(component.citations)}
         </div>
       `,
     )
@@ -155,14 +186,15 @@ function renderKpis(report) {
   const container = document.getElementById("kpi-list");
   container.innerHTML = report.analysis.kpis
     .map((kpi) => {
-      const statusClass = kpi.status.toLowerCase() === "ready" ? "status-ready" : "status-partial";
+      const statusClass = kpi.status.toLowerCase() === "ready" ? "status-ready" : kpi.status.toLowerCase() === "partial" ? "status-partial" : "status-insufficient";
       return `
         <div class="kpi-item">
           <div>
-            <h3>${kpi.name}</h3>
-            <p>${kpi.evidence}</p>
+            <h3>${escapeHtml(kpi.name)}</h3>
+            <p>${escapeHtml(kpi.evidence)}</p>
+            ${renderCitations(kpi.citations)}
           </div>
-          <span class="status-badge ${statusClass}">${kpi.status}</span>
+          <span class="status-badge ${statusClass}">${escapeHtml(kpi.status)}</span>
         </div>
       `;
     })
@@ -171,20 +203,41 @@ function renderKpis(report) {
 
 function renderGaps(report) {
   const container = document.getElementById("gap-list");
+  if (report.analysis.gaps.length === 0) {
+    container.innerHTML = '<p class="abstention-copy">No evidence-backed gaps were identified. This does not confirm SLL readiness; uncited matters are withheld rather than guessed.</p>';
+    return;
+  }
   container.innerHTML = report.analysis.gaps
     .map((gap) => {
       const severityClass = gap.severity.toLowerCase() === "low" ? "severity-low" : "severity-medium";
       return `
         <div class="gap-item">
           <div>
-            <h3>${gap.title}</h3>
-            <p>${gap.description}</p>
+            <h3>${escapeHtml(gap.title)}</h3>
+            <p>${escapeHtml(gap.description)}</p>
+            ${renderCitations(gap.citations)}
           </div>
-          <span class="severity-badge ${severityClass}">${gap.severity}</span>
+          <span class="severity-badge ${severityClass}">${escapeHtml(gap.severity)}</span>
         </div>
       `;
     })
     .join("");
+}
+
+function renderCitations(citations = []) {
+  if (!citations.length) return "";
+  return citations
+    .map((citation) => `<p class="evidence-citation"><strong>Source:</strong> “${escapeHtml(citation.quote)}” · PDF p. ${citation.pages.join(", ")}</p>`)
+    .join("");
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
 function setUploadStatus(message, tone = "neutral") {

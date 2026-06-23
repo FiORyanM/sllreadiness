@@ -1,5 +1,6 @@
 import { chunkText } from "./llmExtractionAdapter.js";
 import { buildChunkEvidencePrompt, buildFinalMergePrompt, validateChunkEvidence, validateFinalExtraction } from "./aiEvidenceSchema.js";
+import { normalizeAiExtraction } from "./aiExtractionNormalizer.js";
 
 const retryDelayMs = 5_000;
 const rateLimitRetryDelayMs = 60_000;
@@ -80,7 +81,7 @@ export function createPersistentAiJobQueue({ repository, providers, sleep = dela
         schemaVersion: "sll-chunk-evidence.v1",
         config: { maxTokens: chunkMaxTokens, ...(candidate.config ?? {}) },
       });
-      const validation = validateChunkEvidence(evidence);
+      const validation = validateChunkEvidence(evidence, chunk.text);
       if (!validation.ok) throw new Error(`AI chunk JSON is incomplete: ${validation.missing.join(", ")}`);
       await repository.updateChunk(chunk.id, { status: "completed", evidence, last_error: null });
     } catch (error) {
@@ -121,10 +122,14 @@ export function createPersistentAiJobQueue({ repository, providers, sleep = dela
       await repository.updateJob(jobId, { status: "merging", stage: "Merging AI analysis" });
       try {
         await waitForProvider(candidate);
-        const extraction = await candidate.invoke({
+        const rawExtraction = await candidate.invoke({
           prompt: buildFinalMergePrompt({ metadata: job.metadata, evidences: chunks.map((chunk) => chunk.evidence) }),
           schemaVersion: "sll-readiness-extraction.v1",
           config: { maxTokens: mergeMaxTokens, ...(candidate.config ?? {}) },
+        });
+        const extraction = normalizeAiExtraction(rawExtraction, {
+          evidences: chunks.map((chunk) => chunk.evidence),
+          metadata: job.metadata,
         });
         const validation = validateFinalExtraction(extraction);
         if (!validation.ok) throw new Error(`AI merge JSON is incomplete: ${validation.missing.join(", ")}`);

@@ -9,7 +9,9 @@ import {
   validatePdfFile,
 } from "../extraction/pdfExtractionAdapter.js";
 import { extractSllReadinessJson, validateSllExtractionJson } from "../extraction/sllExtractionAdapter.js";
+import { normalizeAiExtraction } from "../extraction/aiExtractionNormalizer.js";
 import { extractSllReadinessWithLlm, normalizeLlmExtractionResponse } from "../extraction/llmExtractionAdapter.js";
+import { mapExtractionToReport } from "../mappers/reportMapper.js";
 import { createExtractionJobQueue } from "../extraction/extractionJobQueue.js";
 import { deepseekProvider } from "../extraction/providers/deepseekProvider.js";
 import { configuredAiProviders } from "../extraction/aiProviderPool.js";
@@ -17,6 +19,7 @@ import { geminiProvider } from "../extraction/providers/geminiProvider.js";
 import { groqProvider } from "../extraction/providers/groqProvider.js";
 import { nvidiaProvider } from "../extraction/providers/nvidiaProvider.js";
 import { buildSllExtractionPrompt, sllExtractionSchemaVersion } from "../extraction/sllExtractionSchema.js";
+import { validateChunkEvidence } from "../extraction/aiEvidenceSchema.js";
 import { calculateExecutionCost } from "../models/costModel.js";
 import { calculateScenario } from "../models/financialModel.js";
 import { weightedReadinessFromScores } from "../models/scoringModel.js";
@@ -142,6 +145,15 @@ const prompt = buildSllExtractionPrompt({
 assert.match(prompt, /Sustainability-Linked Loan Principles, 26 March 2025/);
 assert.match(prompt, /valid JSON only/);
 
+const citedChunk = {
+  schemaVersion: "sll-chunk-evidence.v1",
+  companyHints: { name: "Test", reportTitle: "Test report", reportingYear: "2024" },
+  evidence: [{ topic: "KPI", finding: "GHG target", sourceQuote: "GHG emissions target", pageNumbers: [2], confidence: "high" }],
+  notes: [],
+};
+assert.equal(validateChunkEvidence(citedChunk, "--- PDF PAGE 2 ---\nGHG emissions target is disclosed.").ok, true);
+assert.equal(validateChunkEvidence(citedChunk, "--- PDF PAGE 3 ---\nGHG emissions target is disclosed.").ok, false);
+
 const llmExtractionResult = await extractSllReadinessWithLlm({
   text: extractedText,
   metadata: {
@@ -162,6 +174,51 @@ ${JSON.stringify(llmExtractionResult.extraction)}
 \`\`\``);
 
 assert.equal(normalizedJson.schemaVersion, sllExtractionSchemaVersion);
+
+const placeholderAiExtraction = {
+  ...extraction,
+  schemaVersion: sllExtractionSchemaVersion,
+  dealDefaults: { loanSizeM: 0, tenor: 0, baseMargin: 0, ratchetBest: 0, ratchetWorst: 0 },
+  modelInputs: {
+    ...extraction.modelInputs,
+    componentsByKey: Object.fromEntries(
+      Object.keys(extraction.modelInputs.componentsByKey).map((key) => [
+        key,
+        { name: "Incorrect AI label", score: 0, maturity: "absent", status: "High" },
+      ]),
+    ),
+  },
+  analysis: {
+    ...extraction.analysis,
+    gaps: [{
+      title: "Lack of SLL-specific documentation",
+      description: "The report does not mention SLLP.",
+      severity: "High",
+    }],
+  },
+};
+
+const normalizedPlaceholder = normalizeAiExtraction(placeholderAiExtraction, {
+  metadata: extraction.source,
+  evidences: [{
+    evidence: [
+      {
+        topic: "KPI",
+        finding: "Scope 1 and Scope 2 emissions target with GHG Protocol methodology and limited assurance.",
+        sourceQuote: "Annual sustainability report includes a science-based target, baseline and independent assurance.",
+        pageNumbers: [1],
+      },
+    ],
+  }],
+});
+assert.deepEqual(normalizedPlaceholder.dealDefaults, { loanSizeM: 500, tenor: 5, baseMargin: 150, ratchetBest: 10, ratchetWorst: 5 });
+assert.equal(normalizedPlaceholder.modelInputs.assessmentState, "insufficient_evidence");
+assert.equal(normalizedPlaceholder.modelInputs.componentsByKey.kpiDataHistory.citations[0].pages[0], 1);
+assert.equal(normalizedPlaceholder.analysis.gaps.length, 0);
+
+const reportFromCachedPlaceholder = mapExtractionToReport(placeholderAiExtraction);
+assert.equal(reportFromCachedPlaceholder.verdict.title, "Potential SLL candidate — insufficient cited evidence");
+assert.equal(reportFromCachedPlaceholder.dealDefaults.loanSizeM, 500);
 
 await assert.rejects(
   () =>
