@@ -169,7 +169,7 @@ const preparedPages = prepareFullPdfText(oversizedReport);
 assert.equal(preparedPages.scope.sourcePageCount, 313);
 assert.equal(preparedPages.scope.analyzedPageCount, 313);
 assert.equal(preparedPages.scope.skippedPages.length, 0);
-assert.match(preparedPages.scope.selectionRule, /Any page with emissions, targets, methodology, or independent verification/);
+assert.match(preparedPages.scope.selectionRule, /contained emissions, targets, methodology, or verification evidence/);
 
 const mixedRelevanceReport = [
   "--- PDF PAGE 1 ---\nCover page",

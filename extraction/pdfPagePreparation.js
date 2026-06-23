@@ -47,7 +47,7 @@ export function prepareFullPdfText(text) {
       analyzedPages,
       skippedPages,
       metadataOnlyPages,
-      selectionRule: "Any page with emissions, targets, methodology, or independent verification; or a page with at least two distinct signals among emissions, targets, methodology, verification, reporting, and strategy. A single generic reporting or strategy reference is not enough.",
+      selectionRule: "A page was assessed if it contained emissions, targets, methodology, or verification evidence; or if it contained both reporting and strategy signals. A standalone reporting or strategy reference was not assessed.",
     },
     documentIdentification: identificationPage ? { page: 1, text: identificationPage.text.slice(0, 2_000) } : null,
   };
