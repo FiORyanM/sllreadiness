@@ -2,17 +2,20 @@ import { connect } from "node:http2";
 
 const defaultNvidiaEndpoint = "https://integrate.api.nvidia.com/v1/chat/completions";
 const defaultNvidiaModel = "deepseek-ai/deepseek-v4-flash";
+const defaultRequestTimeoutMs = 45_000;
 
 export async function nvidiaProvider({ prompt, schemaVersion, config = {} }) {
   const apiKey = config.apiKey ?? process.env.NVIDIA_API_KEY;
   const endpoint = config.endpoint ?? process.env.NVIDIA_API_URL ?? defaultNvidiaEndpoint;
   const model = config.model ?? process.env.NVIDIA_MODEL ?? defaultNvidiaModel;
+  const timeoutMs = config.timeoutMs ?? Number(process.env.NVIDIA_REQUEST_TIMEOUT_MS ?? process.env.AI_REQUEST_TIMEOUT_MS ?? defaultRequestTimeoutMs);
+  const maxTokens = config.maxTokens ?? 4_000;
 
   if (!apiKey) {
     throw new Error("NVIDIA_API_KEY is not configured.");
   }
 
-  const response = await postChatCompletion({ endpoint, apiKey, model, prompt });
+  const response = await postChatCompletion({ endpoint, apiKey, model, prompt, timeoutMs, maxTokens });
 
   if (!response.ok) {
     const detail = await response.text();
@@ -32,7 +35,7 @@ export async function nvidiaProvider({ prompt, schemaVersion, config = {} }) {
   });
 }
 
-async function postChatCompletion({ endpoint, apiKey, model, prompt }) {
+async function postChatCompletion({ endpoint, apiKey, model, prompt, timeoutMs, maxTokens }) {
   const payload = {
     model,
     messages: [
@@ -48,7 +51,7 @@ async function postChatCompletion({ endpoint, apiKey, model, prompt }) {
     ],
     response_format: { type: "json_object" },
     temperature: 0,
-    max_tokens: 6000,
+    max_tokens: maxTokens,
   };
 
   try {
@@ -59,10 +62,15 @@ async function postChatCompletion({ endpoint, apiKey, model, prompt }) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(timeoutMs),
     });
   } catch (error) {
     if (error.cause?.code === "UND_ERR_SOCKET") {
-      return await postChatCompletionHttp2({ endpoint, apiKey, payload });
+      return await postChatCompletionHttp2({ endpoint, apiKey, payload, timeoutMs });
+    }
+
+    if (error.name === "TimeoutError" || error.name === "AbortError") {
+      throw new Error(`NVIDIA API request timed out after ${timeoutMs}ms.`);
     }
 
     const cause = error.cause ? ` Cause: ${error.cause.code || error.cause.message}` : "";
@@ -70,15 +78,29 @@ async function postChatCompletion({ endpoint, apiKey, model, prompt }) {
   }
 }
 
-async function postChatCompletionHttp2({ endpoint, apiKey, payload }) {
+async function postChatCompletionHttp2({ endpoint, apiKey, payload, timeoutMs }) {
   const url = new URL(endpoint);
   const body = JSON.stringify(payload);
 
   return new Promise((resolve, reject) => {
     const client = connect(url.origin);
     const chunks = [];
+    let settled = false;
 
-    client.on("error", reject);
+    const finish = (callback, value) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      callback(value);
+    };
+
+    const timeout = setTimeout(() => {
+      request.close();
+      client.close();
+      finish(reject, new Error(`NVIDIA API HTTP/2 request timed out after ${timeoutMs}ms.`));
+    }, timeoutMs);
+
+    client.on("error", (error) => finish(reject, error));
 
     const request = client.request({
       ":method": "POST",
@@ -101,7 +123,7 @@ async function postChatCompletionHttp2({ endpoint, apiKey, payload }) {
     request.on("end", () => {
       client.close();
       const responseText = Buffer.concat(chunks).toString("utf8");
-      resolve({
+      finish(resolve, {
         ok: status >= 200 && status < 300,
         status,
         text: async () => responseText,
@@ -111,7 +133,7 @@ async function postChatCompletionHttp2({ endpoint, apiKey, payload }) {
 
     request.on("error", (error) => {
       client.close();
-      reject(new Error(`NVIDIA API HTTP/2 request failed: ${error.message}`));
+      finish(reject, new Error(`NVIDIA API HTTP/2 request failed: ${error.message}`));
     });
 
     request.end(body);

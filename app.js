@@ -2,7 +2,7 @@ import { aiibFixture } from "./fixtures/aiib.js";
 import { nvidiaFixture } from "./fixtures/nvidia.js";
 import { tsmcFixture } from "./fixtures/tsmc.js";
 import { extractPdfText } from "./extraction/pdfExtractionAdapter.js";
-import { extractSllReadinessJson, validateSllExtractionJson } from "./extraction/sllExtractionAdapter.js";
+import { validateSllExtractionJson } from "./extraction/sllExtractionAdapter.js";
 import { mapExtractionToReport } from "./mappers/reportMapper.js";
 import { calculateExecutionCost } from "./models/costModel.js";
 import { calculateScenario, clamp, dollars, loanMillions, signedDollars } from "./models/financialModel.js";
@@ -11,6 +11,7 @@ import { readinessBandLabel, weightedReadinessFromScores } from "./models/scorin
 let activeReport = enrichReport(aiibFixture);
 let selectedUpload = null;
 let isExtracting = false;
+let pendingExtractionJob = null;
 
 const view = {
   start: document.getElementById("start-view"),
@@ -18,6 +19,7 @@ const view = {
   status: document.getElementById("start-status"),
   selectedFile: document.getElementById("selected-file"),
   uploadButton: document.getElementById("upload-preview-button"),
+  retryButton: document.getElementById("retry-analysis-button"),
 };
 
 const fields = {
@@ -261,6 +263,7 @@ function handleUploadSelection(event) {
 
   view.selectedFile.textContent = `${file.name} selected (${(file.size / 1024 / 1024).toFixed(2)}MB).`;
   view.uploadButton.disabled = false;
+  hideRetry();
   setUploadStatus("File selected. Click Analyze Uploaded PDF to validate and run first-pass extraction.");
 }
 
@@ -304,7 +307,13 @@ async function handleUploadedPreview() {
     );
   } catch (error) {
     console.error(error);
-    setUploadStatus("Extraction failed. Please try a text-based PDF or use the AIIB demo.", "error");
+    if (error.job?.status === "capacity_exhausted") {
+      pendingExtractionJob = error.job;
+      showRetry();
+      setUploadStatus("AI capacity is currently exhausted. Retry will continue only the unfinished sections.", "error");
+    } else {
+      setUploadStatus("AI analysis failed before a completed result was available.", "error");
+    }
   } finally {
     isExtracting = false;
     previewButton.disabled = false;
@@ -313,63 +322,142 @@ async function handleUploadedPreview() {
 }
 
 async function extractUploadedReport(pdfResult) {
-  try {
-    const aiResponse = await fetch("/api/extraction-jobs", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        text: pdfResult.text,
-        metadata: pdfResult.metadata,
-      }),
-    });
-
-    if (!aiResponse.ok) {
-      const detail = await safeReadJson(aiResponse);
-      throw new Error(detail.message || `AI extraction failed with ${aiResponse.status}`);
-    }
-
-    const payload = await aiResponse.json();
-
-    if (!payload.ok || !payload.job) throw new Error(payload.message || "AI extraction job could not be created.");
-
-    const completedJob = await pollExtractionJob(payload.job);
-    if (!completedJob.result?.extraction) throw new Error(completedJob.error || "AI extraction did not return structured JSON.");
-
-    return {
-      extraction: completedJob.result.extraction,
-      statusMessage: completedJob.cacheHit
-        ? "AI extraction loaded from cache."
-        : completedJob.fallbackChunks
-          ? `AI extraction completed with rules fallback for ${completedJob.fallbackChunks} section(s).`
-          : "AI extraction completed.",
-    };
-  } catch (error) {
-    console.warn("AI extraction unavailable; falling back to rules.", error);
-    setUploadStatus("AI extraction unavailable. Falling back to browser rules...");
-
-    return {
-      extraction: extractSllReadinessJson(pdfResult),
-      statusMessage: "Rules fallback completed.",
-    };
+  const aiResponse = await fetch("/api/extraction-jobs", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text: pdfResult.text, metadata: pdfResult.metadata }),
+  });
+  const payload = await safeReadJson(aiResponse);
+  if (!aiResponse.ok || !payload.ok || !payload.job || !payload.jobToken) {
+    throw new Error(payload.message || `AI extraction failed with ${aiResponse.status}`);
   }
+
+  saveJobToken(payload.job.id, payload.jobToken);
+  const completedJob = await pollExtractionJob(payload.job);
+  if (!completedJob.result?.extraction) {
+    const error = new Error(completedJob.error || "AI extraction did not return structured JSON.");
+    error.job = completedJob;
+    throw error;
+  }
+
+  clearJobToken(completedJob.id);
+  return {
+    extraction: completedJob.result.extraction,
+    statusMessage: completedJob.cacheHit ? "AI extraction loaded from cache." : "AI extraction completed.",
+  };
 }
 
 async function pollExtractionJob(initialJob) {
   let job = initialJob;
 
-  while (job.status === "queued" || job.status === "processing") {
+  while (job.status === "queued" || job.status === "processing" || job.status === "merging") {
     setUploadStatus(`${job.stage} (${job.progress.completed} / ${job.progress.total})`);
     await new Promise((resolve) => setTimeout(resolve, 1200));
-    const response = await fetch(`/api/extraction-jobs/${encodeURIComponent(job.id)}`);
+    const response = await authorizedJobRequest(`/api/extraction-jobs/${encodeURIComponent(job.id)}`);
     const payload = await safeReadJson(response);
     if (!response.ok || !payload.ok || !payload.job) throw new Error(payload.message || "Unable to read extraction progress.");
     job = payload.job;
   }
 
-  if (job.status !== "completed") throw new Error(job.error || "AI extraction job failed.");
   return job;
+}
+
+async function retryPendingAnalysis() {
+  if (!pendingExtractionJob || isExtracting) return;
+  isExtracting = true;
+  view.retryButton.disabled = true;
+  setUploadStatus("Retrying unfinished AI sections...");
+
+  try {
+    const response = await authorizedJobRequest(`/api/extraction-jobs/${encodeURIComponent(pendingExtractionJob.id)}/retry`, {
+      method: "POST",
+    });
+    const payload = await safeReadJson(response);
+    if (!response.ok || !payload.ok || !payload.job) throw new Error(payload.message || "Unable to retry AI analysis.");
+    const completedJob = await pollExtractionJob(payload.job);
+    if (!completedJob.result?.extraction) {
+      const error = new Error(completedJob.error || "AI analysis remains unavailable.");
+      error.job = completedJob;
+      throw error;
+    }
+    clearJobToken(completedJob.id);
+    pendingExtractionJob = null;
+    hideRetry();
+    showReport(mapExtractionToReport(completedJob.result.extraction), "AI extraction completed after retry.");
+  } catch (error) {
+    if (error.job?.status === "capacity_exhausted") pendingExtractionJob = error.job;
+    setUploadStatus(error.job?.status === "capacity_exhausted" ? "AI capacity is still exhausted." : error.message, "error");
+  } finally {
+    isExtracting = false;
+    view.retryButton.disabled = false;
+  }
+}
+
+function authorizedJobRequest(path, options = {}) {
+  const jobId = path.split("/")[3];
+  const token = loadJobToken(jobId);
+  return fetch(path, {
+    ...options,
+    headers: { ...(options.headers ?? {}), "X-Extraction-Job-Token": token ?? "" },
+  });
+}
+
+function saveJobToken(jobId, token) {
+  sessionStorage.setItem(`sll-job-token:${jobId}`, token);
+  sessionStorage.setItem("sll-active-job-id", jobId);
+}
+
+function loadJobToken(jobId) {
+  return sessionStorage.getItem(`sll-job-token:${jobId}`);
+}
+
+function clearJobToken(jobId) {
+  sessionStorage.removeItem(`sll-job-token:${jobId}`);
+  if (sessionStorage.getItem("sll-active-job-id") === jobId) sessionStorage.removeItem("sll-active-job-id");
+}
+
+function showRetry() {
+  view.retryButton.classList.remove("is-hidden");
+}
+
+function hideRetry() {
+  view.retryButton.classList.add("is-hidden");
+}
+
+async function restoreActiveJob() {
+  const jobId = sessionStorage.getItem("sll-active-job-id");
+  if (!jobId || !loadJobToken(jobId)) return;
+
+  try {
+    const response = await authorizedJobRequest(`/api/extraction-jobs/${encodeURIComponent(jobId)}`);
+    const payload = await safeReadJson(response);
+    if (!response.ok || !payload.ok || !payload.job) {
+      clearJobToken(jobId);
+      return;
+    }
+
+    let job = payload.job;
+    if (job.status === "queued" || job.status === "processing" || job.status === "merging") {
+      isExtracting = true;
+      job = await pollExtractionJob(job);
+    }
+
+    if (job.status === "completed" && job.result?.extraction) {
+      clearJobToken(job.id);
+      showReport(mapExtractionToReport(job.result.extraction), "Recovered completed AI extraction.");
+      return;
+    }
+
+    if (job.status === "capacity_exhausted") {
+      pendingExtractionJob = job;
+      showRetry();
+      setUploadStatus("AI capacity is currently exhausted. Retry will continue only the unfinished sections.", "error");
+    }
+  } catch (error) {
+    console.error("Unable to restore AI extraction job:", error);
+  } finally {
+    isExtracting = false;
+  }
 }
 
 async function safeReadJson(response) {
@@ -403,6 +491,8 @@ function init() {
     showReport(tsmcFixture, "TSMC 2024 demo loaded.");
   });
 
+  view.retryButton.addEventListener("click", retryPendingAnalysis);
+
   document.addEventListener("click", (event) => {
     const analyzeButton = event.target.closest("#upload-preview-button");
     if (!analyzeButton) return;
@@ -412,6 +502,7 @@ function init() {
 
   document.getElementById("report-upload").addEventListener("change", handleUploadSelection);
   document.getElementById("report-upload").addEventListener("input", handleUploadSelection);
+  void restoreActiveJob();
 }
 
 init();

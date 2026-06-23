@@ -12,6 +12,8 @@ import { extractSllReadinessJson, validateSllExtractionJson } from "../extractio
 import { extractSllReadinessWithLlm, normalizeLlmExtractionResponse } from "../extraction/llmExtractionAdapter.js";
 import { createExtractionJobQueue } from "../extraction/extractionJobQueue.js";
 import { deepseekProvider } from "../extraction/providers/deepseekProvider.js";
+import { geminiProvider } from "../extraction/providers/geminiProvider.js";
+import { groqProvider } from "../extraction/providers/groqProvider.js";
 import { nvidiaProvider } from "../extraction/providers/nvidiaProvider.js";
 import { buildSllExtractionPrompt, sllExtractionSchemaVersion } from "../extraction/sllExtractionSchema.js";
 import { calculateExecutionCost } from "../models/costModel.js";
@@ -165,6 +167,16 @@ await assert.rejects(
       config: { apiKey: "" },
     }),
   /NVIDIA_API_KEY/,
+);
+
+await assert.rejects(
+  () => geminiProvider({ prompt: "Return JSON.", schemaVersion: sllExtractionSchemaVersion, config: { apiKey: "", model: "" } }),
+  /GEMINI_API_KEY/,
+);
+
+await assert.rejects(
+  () => groqProvider({ prompt: "Return JSON.", schemaVersion: sllExtractionSchemaVersion, config: { apiKey: "", model: "" } }),
+  /GROQ_API_KEY/,
 );
 
 const queueText = "Sustainability report with GHG emissions, Scope 1, Scope 2, energy targets and limited assurance. ".repeat(900);

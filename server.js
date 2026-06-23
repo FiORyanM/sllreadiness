@@ -3,10 +3,9 @@ import { readFile, stat } from "node:fs/promises";
 import { createServer } from "node:http";
 import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
-import { mockLlmProvider } from "./extraction/llmExtractionAdapter.js";
-import { createExtractionJobQueue } from "./extraction/extractionJobQueue.js";
-import { deepseekProvider } from "./extraction/providers/deepseekProvider.js";
-import { nvidiaProvider } from "./extraction/providers/nvidiaProvider.js";
+import { configuredAiProviders } from "./extraction/aiProviderPool.js";
+import { createPersistentAiJobQueue } from "./extraction/persistentAiJobQueue.js";
+import { SupabaseAnalysisRepository } from "./extraction/supabaseAnalysisRepository.js";
 
 const rootDir = fileURLToPath(new URL(".", import.meta.url));
 loadDotEnv();
@@ -14,10 +13,7 @@ loadDotEnv();
 const port = Number(process.env.PORT ?? 3002);
 const host = normalizeHost(process.env.HOST ?? (process.env.PORT ? "0.0.0.0" : "127.0.0.1"));
 const maxJsonBytes = 2 * 1024 * 1024;
-const extractionJobs = createExtractionJobQueue({
-  provider: selectAiProvider(),
-  requestsPerMinute: Number(process.env.AI_REQUESTS_PER_MINUTE ?? 20),
-});
+const extractionJobs = createPersistentExtractionJobs();
 
 const mimeTypes = {
   ".html": "text/html; charset=utf-8",
@@ -42,8 +38,13 @@ const server = createServer(async (request, response) => {
       return;
     }
 
-    if (request.method === "GET" && request.url.startsWith("/api/extraction-jobs/")) {
-      handleGetExtractionJob(request, response);
+    if (request.method === "POST" && extractionJobIdFromUrl(request.url, "/retry")) {
+      await handleRetryExtractionJob(request, response);
+      return;
+    }
+
+    if (request.method === "GET" && extractionJobIdFromUrl(request.url)) {
+      await handleGetExtractionJob(request, response);
       return;
     }
 
@@ -76,30 +77,67 @@ async function handleCreateExtractionJob(request, response) {
     return;
   }
 
-  const job = extractionJobs.createJob({ text, metadata });
-  sendJson(response, job.cacheHit ? 200 : 202, { ok: true, job });
+  if (!extractionJobs.queue) {
+    sendJson(response, 503, { ok: false, message: extractionJobs.error });
+    return;
+  }
+
+  const { job, token } = await extractionJobs.queue.createJob({ text, metadata });
+  sendJson(response, job.cacheHit ? 200 : 202, { ok: true, job, jobToken: token });
 }
 
-function handleGetExtractionJob(request, response) {
-  const jobId = request.url.slice("/api/extraction-jobs/".length);
-  const job = extractionJobs.getJob(jobId);
+async function handleGetExtractionJob(request, response) {
+  if (!extractionJobs.queue) {
+    sendJson(response, 503, { ok: false, message: extractionJobs.error });
+    return;
+  }
+
+  const jobId = extractionJobIdFromUrl(request.url);
+  const job = await extractionJobs.repository.getAuthorizedJob(jobId, request.headers["x-extraction-job-token"]);
 
   if (!job) {
-    sendJson(response, 404, { ok: false, message: "Extraction job was not found." });
+    sendJson(response, 404, { ok: false, message: "Extraction job was not found or the job token is invalid." });
     return;
   }
 
   sendJson(response, 200, { ok: true, job });
 }
 
-function selectAiProvider() {
-  const providerName = (process.env.AI_PROVIDER ?? "").toLowerCase();
+async function handleRetryExtractionJob(request, response) {
+  if (!extractionJobs.queue) {
+    sendJson(response, 503, { ok: false, message: extractionJobs.error });
+    return;
+  }
 
-  if (providerName === "local" || providerName === "rules" || providerName === "off") return mockLlmProvider;
-  if (providerName === "nvidia") return nvidiaProvider;
-  if (providerName === "deepseek") return deepseekProvider;
-  if (process.env.NVIDIA_API_KEY) return nvidiaProvider;
-  return deepseekProvider;
+  const jobId = extractionJobIdFromUrl(request.url, "/retry");
+  const job = await extractionJobs.queue.retryJob(jobId, request.headers["x-extraction-job-token"]);
+  if (!job) {
+    sendJson(response, 404, { ok: false, message: "Extraction job was not found or the job token is invalid." });
+    return;
+  }
+  sendJson(response, 202, { ok: true, job });
+}
+
+function createPersistentExtractionJobs() {
+  try {
+    const repository = new SupabaseAnalysisRepository();
+    const providers = configuredAiProviders();
+    if (!providers.length) throw new Error("Configure at least one complete AI provider: NVIDIA, Gemini, or Groq.");
+    const queue = createPersistentAiJobQueue({ repository, providers });
+    void queue.resume().catch((error) => console.error("Unable to resume AI extraction jobs:", error));
+    return { queue, repository };
+  } catch (error) {
+    console.error("Persistent AI extraction is unavailable:", error.message);
+    return { queue: null, repository: null, error: error.message };
+  }
+}
+
+function extractionJobIdFromUrl(requestUrl, suffix = "") {
+  const pathname = new URL(requestUrl, "http://localhost").pathname;
+  const prefix = "/api/extraction-jobs/";
+  if (!pathname.startsWith(prefix) || (suffix && !pathname.endsWith(suffix))) return null;
+  const id = pathname.slice(prefix.length, suffix ? -suffix.length : undefined);
+  return id || null;
 }
 
 async function readJsonBody(request) {

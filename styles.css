@@ -151,6 +151,10 @@ input {
   margin-top: 12px;
 }
 
+#retry-analysis-button {
+  margin-top: 12px;
+}
+
 .status-message[data-tone="error"] {
   color: var(--red);
   font-weight: 700;

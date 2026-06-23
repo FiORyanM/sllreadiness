@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "node server.js",
     "start": "node server.js",
-    "test": "node tests/modelSmokeTest.mjs"
+    "test": "node tests/modelSmokeTest.mjs && node tests/persistentAiJobQueueTest.mjs"
   },
   "dependencies": {
     "pdfjs-dist": "^4.10.38"
