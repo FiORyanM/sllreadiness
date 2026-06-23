@@ -401,7 +401,7 @@ async function handleUploadedPreview() {
     } else if (error.job?.status === "capacity_exhausted") {
       pendingExtractionJob = error.job;
       showRetry();
-      setUploadStatus("AI capacity is currently exhausted. Retry will continue only the unfinished sections.", "error");
+      setUploadStatus(capacityMessage(error.job), "error");
     } else {
       setUploadStatus("AI analysis failed before a completed result was available.", "error");
     }
@@ -500,7 +500,7 @@ async function retryPendingAnalysis() {
     showReport(mapExtractionToReport(completedJob.result.extraction), "AI extraction completed after retry.");
   } catch (error) {
     if (error.job?.status === "capacity_exhausted") pendingExtractionJob = error.job;
-    setUploadStatus(error.job?.status === "capacity_exhausted" ? "AI capacity is still exhausted." : error.message, "error");
+    setUploadStatus(error.job?.status === "capacity_exhausted" ? capacityMessage(error.job) : error.message, "error");
   } finally {
     isExtracting = false;
     view.retryButton.disabled = false;
@@ -578,13 +578,19 @@ async function restoreActiveJob() {
     if (job.status === "capacity_exhausted") {
       pendingExtractionJob = job;
       showRetry();
-      setUploadStatus("AI capacity is currently exhausted. Retry will continue only the unfinished sections.", "error");
+      setUploadStatus(capacityMessage(job), "error");
     }
   } catch (error) {
     console.error("Unable to restore AI extraction job:", error);
   } finally {
     isExtracting = false;
   }
+}
+
+function capacityMessage(job) {
+  const details = job?.failureDetails ?? [];
+  if (!details.length) return "AI capacity is currently exhausted. Retry will continue only the unfinished sections.";
+  return `AI providers could not complete the analysis: ${details.map((detail) => `section ${detail.section}: ${detail.message}`).join(" | ")}`;
 }
 
 async function safeReadJson(response) {

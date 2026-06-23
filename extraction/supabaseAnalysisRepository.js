@@ -134,6 +134,10 @@ export class SupabaseAnalysisRepository {
     const chunks = await this.listChunks(id);
     const completed = chunks.filter((chunk) => chunk.status === "completed").length;
     const exhausted = chunks.filter((chunk) => chunk.status === "capacity_exhausted").length;
+    const failureDetails = chunks
+      .filter((chunk) => ["capacity_exhausted", "failed"].includes(chunk.status) && chunk.last_error)
+      .slice(0, 4)
+      .map((chunk) => ({ section: chunk.position + 1, message: String(chunk.last_error).slice(0, 500) }));
     return {
       id: job.id,
       status: job.status,
@@ -141,6 +145,7 @@ export class SupabaseAnalysisRepository {
       progress: { completed, total: chunks.length, exhausted },
       cacheHit: job.stage === "Completed from cache",
       error: job.error,
+      failureDetails,
       result: job.status === "completed" ? job.result : undefined,
     };
   }
