@@ -210,7 +210,7 @@ function prioritizeChunks(chunks) {
 }
 
 function preScreenScore(text) {
-  const matches = text.match(/ghg|emissions|energy|target|assurance|sustainability indicators?|about this report|scope [123]/gi);
+  const matches = text.match(/ghg|emissions|energy|target|assurance|sustainability indicators?|about this report|scope [123]|invest|capex|capital expenditure|green project|carbon credit|offset|residual emissions/gi);
   return matches?.length ?? 0;
 }
 

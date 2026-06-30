@@ -5,6 +5,8 @@ const evidenceSignals = {
   verification: /\b(limited assurance|reasonable assurance|independent assurance|external verification|third[-\s]?party verification|audit)\b/i,
   reporting: /\b(gri|sasb|issb|tcfd|annual sustainability report|integrated report)\b/i,
   strategy: /\b(transition plan|climate strategy|materiality|sustainability governance|climate action plan)\b/i,
+  investment: /\b(invest(?:ment|ed|ing)?|capex|capital expenditure|green project|eligible project|use of proceeds|fund|procurement)\b/i,
+  carbonCredit: /\b(carbon credits?|offsets?|removals?|registry|verified carbon standard|vcs|gold standard|residual emissions?)\b/i,
 };
 
 /**
@@ -47,7 +49,7 @@ export function prepareFullPdfText(text) {
       analyzedPages,
       skippedPages,
       metadataOnlyPages,
-      selectionRule: "A page was assessed if it contained emissions, targets, methodology, or verification evidence; or if it contained both reporting and strategy signals. A standalone reporting or strategy reference was not assessed.",
+      selectionRule: "A page was assessed if it contained emissions, targets, methodology, verification, investment/capex, or carbon credit evidence; or if it contained both reporting and strategy signals. A standalone reporting or strategy reference was not assessed.",
     },
     documentIdentification: identificationPage ? { page: 1, text: identificationPage.text.slice(0, 2_000) } : null,
   };
@@ -60,7 +62,7 @@ function pageSignals(text) {
 }
 
 function shouldAnalyzePage(signals) {
-  const strongStandaloneSignals = new Set(["emissions", "targets", "methodology", "verification"]);
+  const strongStandaloneSignals = new Set(["emissions", "targets", "methodology", "verification", "investment", "carbonCredit"]);
   return signals.some((signal) => strongStandaloneSignals.has(signal)) || signals.length >= 2;
 }
 

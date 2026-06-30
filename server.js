@@ -1,9 +1,11 @@
+import { randomBytes } from "node:crypto";
 import { createReadStream, readFileSync } from "node:fs";
 import { readFile, stat } from "node:fs/promises";
 import { createServer } from "node:http";
 import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 import { configuredAiProviders } from "./extraction/aiProviderPool.js";
+import { createExtractionJobQueue } from "./extraction/extractionJobQueue.js";
 import { createPersistentAiJobQueue } from "./extraction/persistentAiJobQueue.js";
 import { SupabaseAnalysisRepository } from "./extraction/supabaseAnalysisRepository.js";
 
@@ -88,7 +90,7 @@ async function handleCreateExtractionJob(request, response) {
     return;
   }
 
-  const { job, token } = await extractionJobs.queue.createJob({ text, metadata });
+  const { job, token } = await extractionJobs.createJob({ text, metadata });
   sendJson(response, job.cacheHit ? 200 : 202, { ok: true, job, jobToken: token });
 }
 
@@ -99,7 +101,7 @@ async function handleGetExtractionJob(request, response) {
   }
 
   const jobId = extractionJobIdFromUrl(request.url);
-  const job = await extractionJobs.repository.getAuthorizedJob(jobId, request.headers["x-extraction-job-token"]);
+  const job = await extractionJobs.getAuthorizedJob(jobId, request.headers["x-extraction-job-token"]);
 
   if (!job) {
     sendJson(response, 404, { ok: false, message: "Extraction job was not found or the job token is invalid." });
@@ -116,7 +118,7 @@ async function handleRetryExtractionJob(request, response) {
   }
 
   const jobId = extractionJobIdFromUrl(request.url, "/retry");
-  const job = await extractionJobs.queue.retryJob(jobId, request.headers["x-extraction-job-token"]);
+  const job = await extractionJobs.retryJob(jobId, request.headers["x-extraction-job-token"]);
   if (!job) {
     sendJson(response, 404, { ok: false, message: "Extraction job was not found or the job token is invalid." });
     return;
@@ -130,7 +132,7 @@ async function handleCancelExtractionJob(request, response) {
     return;
   }
   const jobId = extractionJobIdFromUrl(request.url, "/cancel");
-  const job = await extractionJobs.queue.cancelJob(jobId, request.headers["x-extraction-job-token"]);
+  const job = await extractionJobs.cancelJob(jobId, request.headers["x-extraction-job-token"]);
   if (!job) {
     sendJson(response, 404, { ok: false, message: "Extraction job was not found or the job token is invalid." });
     return;
@@ -139,19 +141,96 @@ async function handleCancelExtractionJob(request, response) {
 }
 
 function createPersistentExtractionJobs() {
+  const providers = configuredAiProviders();
+
   try {
     const repository = new SupabaseAnalysisRepository();
-    const providers = configuredAiProviders();
     if (!providers.length) throw new Error("Configure at least one complete AI provider: NVIDIA, Gemini, or Groq.");
     const providerNames = providers.map((provider) => provider.name);
     console.log(`Configured AI providers: ${providerNames.join(", ")}`);
     const queue = createPersistentAiJobQueue({ repository, providers });
     void queue.resume().catch((error) => console.error("Unable to resume AI extraction jobs:", error));
-    return { queue, repository, providerNames };
+    return {
+      queue,
+      repository,
+      providerNames,
+      createJob: (jobInput) => queue.createJob(jobInput),
+      getAuthorizedJob: (id, token) => repository.getAuthorizedJob(id, token),
+      retryJob: (id, token) => queue.retryJob(id, token),
+      cancelJob: (id, token) => queue.cancelJob(id, token),
+    };
   } catch (error) {
-    console.error("Persistent AI extraction is unavailable:", error.message);
-    return { queue: null, repository: null, providerNames: [], error: error.message };
+    if (process.env.SUPABASE_URL || process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      console.error("Persistent AI extraction is unavailable:", error.message);
+      return { queue: null, repository: null, providerNames: [], error: error.message };
+    }
+    return createLocalExtractionJobs({ providers, reason: error.message });
   }
+}
+
+function createLocalExtractionJobs({ providers, reason }) {
+  const primaryProvider = providers[0];
+  const tokens = new Map();
+  const cancelled = new Set();
+  const queue = createExtractionJobQueue({
+    provider: async ({ prompt, schemaVersion }) => {
+      if (!primaryProvider) throw new Error("No AI provider configured; using local rules fallback.");
+      try {
+        return await primaryProvider.invoke({
+          prompt,
+          schemaVersion,
+          config: { ...(primaryProvider.config ?? {}), maxTokens: 6_000, timeoutMs: localProviderTimeoutMs() },
+        });
+      } catch {
+        throw new Error("Local AI provider unavailable; using rules fallback.");
+      }
+    },
+    requestsPerMinute: primaryProvider?.requestsPerMinute ?? 20,
+  });
+
+  console.warn(
+    `Persistent AI extraction is unavailable (${reason}). Using local in-memory extraction jobs${primaryProvider ? ` with ${primaryProvider.name}` : " with rules fallback only"}.`,
+  );
+
+  return {
+    queue,
+    repository: null,
+    providerNames: primaryProvider ? [`local-${primaryProvider.name}`] : ["local-rules-fallback"],
+    async createJob(jobInput) {
+      const job = queue.createJob(jobInput);
+      const token = randomToken();
+      tokens.set(job.id, token);
+      return { job, token };
+    },
+    async getAuthorizedJob(id, token) {
+      if (!authorized(tokens, id, token)) return null;
+      const job = queue.getJob(id);
+      if (!job) return null;
+      return cancelled.has(id) ? { ...job, status: "cancelled", stage: "Cancelled locally" } : job;
+    },
+    async retryJob(id, token) {
+      return authorized(tokens, id, token) ? queue.getJob(id) : null;
+    },
+    async cancelJob(id, token) {
+      if (!authorized(tokens, id, token)) return null;
+      cancelled.add(id);
+      const job = queue.getJob(id);
+      return job ? { ...job, status: "cancelled", stage: "Cancelled locally" } : null;
+    },
+  };
+}
+
+function authorized(tokens, id, token) {
+  return Boolean(id && token && tokens.get(id) === token);
+}
+
+function randomToken() {
+  return randomBytes(24).toString("hex");
+}
+
+function localProviderTimeoutMs() {
+  const parsed = Number(process.env.LOCAL_AI_REQUEST_TIMEOUT_MS ?? 15_000);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 15_000;
 }
 
 function extractionJobIdFromUrl(requestUrl, suffix = "") {

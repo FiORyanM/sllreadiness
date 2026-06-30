@@ -23,6 +23,7 @@ export function extractSllReadinessJson({ text, metadata }) {
   const kpis = detectCandidateKpis(text, normalized);
   const sllpAlignment = buildSllpAlignment(signals);
   const gaps = detectGaps(signals, kpis);
+  const sustainabilityInvestments = detectSustainabilityInvestments(text, normalized);
   const hasLowConfidence = signals.lowConfidence || kpis.some((kpi) => kpi.confidence === "low");
 
   return {
@@ -52,6 +53,7 @@ export function extractSllReadinessJson({ text, metadata }) {
       kpis,
       gaps,
       sllpAlignment,
+      sustainabilityInvestments,
       baseMarginNote:
         "150bps is a generic placeholder for first-pass screening. Replace with actual loan margin for decision-useful economics.",
     },
@@ -354,6 +356,62 @@ function detectGaps(signals, kpis) {
   return gaps;
 }
 
+function detectSustainabilityInvestments(text, normalized) {
+  const items = [];
+
+  addInvestmentIf(items, text, /(?:invest(?:ed|ment|ing)?|capex|capital expenditure)[^.]{0,180}(?:renewable|solar|wind|energy|efficien|decarbon|emissions?|carbon)/i, {
+    name: "Climate-related investment",
+    category: "renewable_energy",
+    investmentType: "capex",
+    carbonCreditRelevance: "Medium",
+  });
+
+  addInvestmentIf(items, text, /(?:carbon credits?|offsets?|removals?)[^.]{0,180}/i, {
+    name: "Carbon credit or offset activity",
+    category: /removal|capture|biochar/i.test(text) ? "carbon_removal" : "other",
+    investmentType: "procurement",
+    carbonCreditRelevance: "High",
+  });
+
+  addInvestmentIf(items, text, /(?:green project|eligible project|use of proceeds|sustainable finance)[^.]{0,180}/i, {
+    name: "Green finance project investment",
+    category: "sustainable_finance",
+    investmentType: "financing",
+    carbonCreditRelevance: "Medium",
+  });
+
+  return {
+    summary: items.length
+      ? `${items.length} possible sustainability investment signal${items.length === 1 ? "" : "s"} detected by rules fallback.`
+      : "No cited sustainability investment was detected by rules fallback.",
+    overallRating: items.length ? "Emerging" : "No cited investment evidence",
+    carbonCreditOpportunityScore: items.length ? 45 : 0,
+    carbonCreditThesis: items.length
+      ? "Use these cited investment signals as leads for carbon credit diligence; analyst review is still required."
+      : "Ask for project-level capex, expected emissions impact and any existing offset/credit strategy before discussing carbon credit transactions.",
+    items,
+  };
+}
+
+function addInvestmentIf(collection, text, pattern, defaults) {
+  const citation = citationFor(text, pattern);
+  if (!citation) return;
+  collection.push({
+    ...defaults,
+    targetArea: citation.quote,
+    amount: amountFromQuote(citation.quote),
+    expectedImpact: citation.quote,
+    score: defaults.carbonCreditRelevance === "High" ? 60 : 45,
+    rating: defaults.carbonCreditRelevance === "High" ? "Credible" : "Emerging",
+    carbonCreditPathway:
+      defaults.carbonCreditRelevance === "High"
+        ? "Potential direct carbon credit activity; confirm registry, methodology, ownership and retirement claims."
+        : "Internal reduction or green-finance lever; use it to estimate residual emissions and future credit demand.",
+    assessment: "Rules fallback found an explicit investment-related sentence, but amount, impact and verification need analyst review.",
+    citations: [citation],
+  });
+}
+
 function detectCompanyName(text, fileName) {
   const firstChunk = text.slice(0, 1200);
   const knownPatterns = [
@@ -380,6 +438,26 @@ function evidenceFor(text, pattern) {
   const match = text.match(pattern);
   if (!match?.[0]) return "Metric mentioned in extracted report text; evidence requires analyst review.";
   return truncateEvidence(match[0]);
+}
+
+function citationFor(text, pattern) {
+  const match = text.match(pattern);
+  if (!match?.[0]) return null;
+  return {
+    quote: truncateEvidence(match[0]),
+    pages: [pageNumberForIndex(text, match.index ?? 0)],
+  };
+}
+
+function pageNumberForIndex(text, index) {
+  const before = text.slice(0, index);
+  const matches = [...before.matchAll(/--- PDF PAGE (\d+) ---/g)];
+  return Number(matches.at(-1)?.[1] ?? 1);
+}
+
+function amountFromQuote(quote) {
+  const match = quote.match(/(?:US\$|USD|\$|HK\$|SGD)\s?\d[\d,.]*(?:\s?(?:million|billion|m|bn))?|\d[\d,.]*\s?(?:million|billion)\s?(?:USD|dollars?)/i);
+  return match?.[0] ?? "Not disclosed";
 }
 
 function truncateEvidence(value) {

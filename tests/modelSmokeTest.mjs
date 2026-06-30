@@ -24,6 +24,7 @@ import { prepareFullPdfText } from "../extraction/pdfPagePreparation.js";
 import { calculateExecutionCost } from "../models/costModel.js";
 import { calculateScenario } from "../models/financialModel.js";
 import { weightedReadinessFromScores } from "../models/scoringModel.js";
+import { normalizeSustainabilityInvestmentAnalysis } from "../models/sustainabilityInvestmentModel.js";
 
 const scoring = weightedReadinessFromScores(aiibFixture.modelInputs.componentsByKey);
 
@@ -169,7 +170,7 @@ const preparedPages = prepareFullPdfText(oversizedReport);
 assert.equal(preparedPages.scope.sourcePageCount, 313);
 assert.equal(preparedPages.scope.analyzedPageCount, 313);
 assert.equal(preparedPages.scope.skippedPages.length, 0);
-assert.match(preparedPages.scope.selectionRule, /contained emissions, targets, methodology, or verification evidence/);
+assert.match(preparedPages.scope.selectionRule, /investment\/capex, or carbon credit evidence/);
 
 const mixedRelevanceReport = [
   "--- PDF PAGE 1 ---\nCover page",
@@ -186,6 +187,27 @@ assert.equal(mixedPages.documentIdentification.page, 1);
 
 const singleSignalReport = "--- PDF PAGE 1 ---\nIndependent assurance statement by an external auditor.";
 assert.deepEqual(prepareFullPdfText(singleSignalReport).scope.analyzedPages, [1]);
+
+const investmentOnlyReport = [
+  "--- PDF PAGE 1 ---\nCover page",
+  "--- PDF PAGE 2 ---\nThe company invested USD 25 million in renewable electricity procurement and energy efficiency projects.",
+].join("\n");
+assert.deepEqual(prepareFullPdfText(investmentOnlyReport).scope.analyzedPages, [2]);
+
+const investmentAnalysis = normalizeSustainabilityInvestmentAnalysis({
+  items: [{
+    name: "Renewable electricity procurement",
+    category: "renewable_energy",
+    investmentType: "procurement",
+    amount: "USD 25 million",
+    targetArea: "renewable electricity and energy efficiency",
+    expectedImpact: "reduce Scope 2 emissions",
+    citations: [{ quote: "invested USD 25 million in renewable electricity procurement", pages: [2] }],
+  }],
+});
+assert.equal(investmentAnalysis.items[0].rating, "Credible");
+assert.equal(investmentAnalysis.items[0].carbonCreditRelevance, "Medium");
+assert.match(investmentAnalysis.items[0].carbonCreditPathway, /residual emissions/);
 
 const llmExtractionResult = await extractSllReadinessWithLlm({
   text: extractedText,
@@ -248,6 +270,19 @@ assert.deepEqual(normalizedPlaceholder.dealDefaults, { loanSizeM: 500, tenor: 5,
 assert.equal(normalizedPlaceholder.modelInputs.assessmentState, "insufficient_evidence");
 assert.equal(normalizedPlaceholder.modelInputs.componentsByKey.kpiDataHistory.citations[0].pages[0], 1);
 assert.equal(normalizedPlaceholder.analysis.gaps.length, 0);
+
+const fallbackInvestmentExtraction = extractSllReadinessJson({
+  text: investmentOnlyReport,
+  metadata: {
+    fileName: "investment-test.pdf",
+    fileSizeBytes: 1000,
+    pageCount: 2,
+    extractedCharCount: investmentOnlyReport.length,
+    truncated: false,
+  },
+});
+assert.equal(fallbackInvestmentExtraction.analysis.sustainabilityInvestments.items.length, 1);
+assert.deepEqual(fallbackInvestmentExtraction.analysis.sustainabilityInvestments.items[0].citations[0].pages, [2]);
 
 const reportFromCachedPlaceholder = mapExtractionToReport(placeholderAiExtraction);
 assert.equal(reportFromCachedPlaceholder.verdict.title, "Potential SLL candidate — insufficient cited evidence");

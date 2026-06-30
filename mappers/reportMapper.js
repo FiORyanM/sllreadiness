@@ -27,6 +27,7 @@ export function mapExtractionToReport(extraction) {
         citations: kpi.citations,
       })),
       gaps: extraction.analysis.gaps,
+      sustainabilityInvestments: extraction.analysis.sustainabilityInvestments,
       baseMarginNote: extraction.analysis.baseMarginNote,
       extractionSummary: {
         reportingYear,

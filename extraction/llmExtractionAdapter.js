@@ -186,6 +186,9 @@ export function mergeChunkExtractions(extractions, metadata) {
   const first = extractions[0];
   const kpis = uniqueByName(extractions.flatMap((extraction) => extraction.analysis?.kpis ?? []));
   const gaps = uniqueByName(extractions.flatMap((extraction) => extraction.analysis?.gaps ?? []), "title");
+  const investmentItems = uniqueByName(
+    extractions.flatMap((extraction) => extraction.analysis?.sustainabilityInvestments?.items ?? []),
+  );
   const componentsByKey = mergeComponents(extractions.map((extraction) => extraction.modelInputs?.componentsByKey ?? {}));
   const readyKpiCount = kpis.filter((kpi) => kpi.status === "Ready").length;
 
@@ -213,6 +216,7 @@ export function mergeChunkExtractions(extractions, metadata) {
       kpis,
       gaps,
       sllpAlignment: mergeSllpAlignment(extractions),
+      sustainabilityInvestments: mergeSustainabilityInvestments(extractions, investmentItems),
       baseMarginNote:
         first.analysis?.baseMarginNote ||
         "150bps is a generic placeholder for first-pass screening. Replace with actual loan margin for decision-useful economics.",
@@ -317,6 +321,27 @@ function mergeSllpAlignment(extractions) {
     standard: firstValue(extractions, (extraction) => extraction.analysis?.sllpAlignment?.standard) ||
       "Sustainability-Linked Loan Principles, 26 March 2025",
     coreComponents,
+  };
+}
+
+function mergeSustainabilityInvestments(extractions, items) {
+  const analyses = extractions.map((extraction) => extraction.analysis?.sustainabilityInvestments).filter(Boolean);
+  const best = analyses.reduce((winner, analysis) => {
+    if (!winner) return analysis;
+    return (analysis.carbonCreditOpportunityScore ?? 0) > (winner.carbonCreditOpportunityScore ?? 0) ? analysis : winner;
+  }, null);
+
+  return {
+    frameworkVersion: "sustainability-investment-framework.v1",
+    summary: items.length
+      ? `${items.length} cited sustainability investment signal${items.length === 1 ? "" : "s"} detected across report segments.`
+      : "No cited sustainability investment evidence detected across report segments.",
+    overallRating: best?.overallRating ?? "No cited investment evidence",
+    carbonCreditOpportunityScore: best?.carbonCreditOpportunityScore ?? 0,
+    carbonCreditThesis:
+      best?.carbonCreditThesis ||
+      "Ask for project-level capex, expected emissions impact and any existing offset/credit strategy before discussing carbon credit transactions.",
+    items,
   };
 }
 

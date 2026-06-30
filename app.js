@@ -7,6 +7,7 @@ import { mapExtractionToReport } from "./mappers/reportMapper.js";
 import { calculateExecutionCost } from "./models/costModel.js";
 import { calculateScenario, clamp, dollars, loanMillions, signedDollars } from "./models/financialModel.js";
 import { readinessBandLabel, weightedReadinessFromScores } from "./models/scoringModel.js";
+import { normalizeSustainabilityInvestmentAnalysis } from "./models/sustainabilityInvestmentModel.js";
 
 let activeReport = enrichReport(aiibFixture);
 let selectedUpload = null;
@@ -69,6 +70,9 @@ const ids = [
   "base-margin-note",
   "report-footer",
   "analysis-scope",
+  "investment-rating",
+  "investment-score",
+  "investment-thesis",
 ];
 
 const els = Object.fromEntries(ids.map((id) => [id, document.getElementById(id)]));
@@ -91,6 +95,7 @@ function enrichReport(report) {
         : { ...kpi, status: "Insufficient evidence", evidence: "Insufficient cited evidence to assess this KPI candidate.", citations: [] };
     }),
     gaps: report.analysis.gaps.filter((gap) => validCitations(gap.citations).length > 0).map((gap) => ({ ...gap, citations: validCitations(gap.citations) })),
+    sustainabilityInvestments: normalizeSustainabilityInvestmentAnalysis(report.analysis.sustainabilityInvestments),
   };
   const modelInputs = {
     ...report.modelInputs,
@@ -260,6 +265,40 @@ function renderGaps(report) {
     .join("");
 }
 
+function renderSustainabilityInvestments(report) {
+  const analysis = report.analysis.sustainabilityInvestments;
+  const container = document.getElementById("investment-list");
+  els["investment-rating"].textContent = analysis.overallRating;
+  els["investment-score"].textContent = analysis.carbonCreditOpportunityScore ? `${analysis.carbonCreditOpportunityScore} / 100` : "Not assessed";
+  els["investment-thesis"].textContent = analysis.carbonCreditThesis;
+
+  if (!analysis.items.length) {
+    container.innerHTML = '<p class="abstention-copy">No cited sustainability investment, capex, project or carbon credit activity was detected. Ask for project-level evidence before carbon credit transaction analysis.</p>';
+    return;
+  }
+
+  container.innerHTML = analysis.items
+    .map((item) => `
+      <div class="investment-item">
+        <div>
+          <div class="investment-title-row">
+            <h3>${escapeHtml(item.name)}</h3>
+            <span class="investment-rating-badge">${escapeHtml(item.rating)}</span>
+          </div>
+          <p>${escapeHtml(item.assessment)}</p>
+          <dl class="investment-details">
+            <div><dt>Invested in</dt><dd>${escapeHtml(item.targetArea)}</dd></div>
+            <div><dt>Amount</dt><dd>${escapeHtml(item.amount)}</dd></div>
+            <div><dt>Carbon credit path</dt><dd>${escapeHtml(item.carbonCreditRelevance)} - ${escapeHtml(item.carbonCreditPathway)}</dd></div>
+          </dl>
+          ${renderCitations(item.citations)}
+        </div>
+        <strong class="investment-score">${item.score}</strong>
+      </div>
+    `)
+    .join("");
+}
+
 function renderCitations(citations = []) {
   if (!citations.length) return "";
   return citations
@@ -331,6 +370,7 @@ function showReport(report, statusMessage) {
   renderComponents(activeReport);
   renderKpis(activeReport);
   renderGaps(activeReport);
+  renderSustainabilityInvestments(activeReport);
   updateCalculations();
 
   view.start.classList.add("is-hidden");

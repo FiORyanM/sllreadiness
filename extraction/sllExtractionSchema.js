@@ -18,12 +18,39 @@ export const sllpCoreComponentKeys = [
   "verification",
 ];
 
+const sustainabilityInvestmentContract = {
+  frameworkVersion: "sustainability-investment-framework.v1",
+  summary: "string",
+  overallRating: "Strong | Credible | Emerging | Weak | No cited investment evidence",
+  carbonCreditOpportunityScore: "number from 0 to 100",
+  carbonCreditThesis: "string",
+  items: [
+    {
+      name: "string",
+      category:
+        "renewable_energy | energy_efficiency | clean_transport | green_buildings | supplier_decarbonization | sustainable_finance | nature_based | carbon_removal | waste_methane | water | circularity | other",
+      investmentType: "capex | opex | fund | project | procurement | financing | not specified",
+      amount: "string amount or Not disclosed",
+      targetArea: "string",
+      expectedImpact: "string",
+      score: "number from 0 to 100",
+      rating: "Strong | Credible | Emerging | Weak",
+      carbonCreditRelevance: "High | Medium | Low",
+      carbonCreditPathway: "string",
+      assessment: "short analyst-style view of whether this investment is good and why",
+      citations: [{ quote: "string", pages: ["integer PDF page number"] }],
+    },
+  ],
+};
+
 export function buildSllExtractionPrompt({ text, metadata }) {
   return [
     "You are extracting evidence for an SLL readiness report.",
     `Use ${sllpStandard} as the assessment reference.`,
     "Return valid JSON only. Do not include markdown.",
     "Do not invent facts. If evidence is missing, use status \"Needs review\" and explain the missing evidence.",
+    "For sustainabilityInvestments, include only investments, capex, funds, projects, procurement, offsets or carbon credit activity that are explicitly cited in the report. Do not convert general strategy language into an investment.",
+    "Rate each sustainability investment on use-of-proceeds clarity, decarbonization link, quantified amount/impact, delivery status, verification readiness and carbon-credit pathway. Explain whether the investment is commercially useful for a carbon credit discussion.",
     "",
     "Required JSON shape:",
     JSON.stringify(sllExtractionJsonContract, null, 2),
@@ -112,6 +139,7 @@ export const sllExtractionJsonContract = {
         verification: alignmentContract,
       },
     },
+    sustainabilityInvestments: sustainabilityInvestmentContract,
     baseMarginNote: "string",
   },
   confidence: {

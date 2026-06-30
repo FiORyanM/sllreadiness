@@ -649,7 +649,8 @@ dl .total dd {
 }
 
 .kpi-list,
-.gap-list {
+.gap-list,
+.investment-list {
   display: grid;
   gap: 9px;
 }
@@ -717,6 +718,119 @@ dl .total dd {
 .severity-low {
   background: var(--teal-soft);
   color: var(--deep);
+}
+
+.investment-panel {
+  grid-column: 1 / -1;
+}
+
+.investment-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(180px, 1fr));
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.investment-summary-grid div {
+  padding: 11px;
+  border: 1px solid var(--line);
+  background: white;
+}
+
+.investment-summary-grid span {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.investment-summary-grid strong {
+  display: block;
+  margin-top: 6px;
+  color: var(--deep);
+  font-size: 18px;
+  line-height: 1.15;
+}
+
+.investment-thesis {
+  margin: 0 0 11px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.investment-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 52px;
+  gap: 12px;
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+}
+
+.investment-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.investment-title-row h3 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.investment-item p {
+  margin: 5px 0 8px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.investment-rating-badge {
+  flex: 0 0 auto;
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: var(--teal-soft);
+  color: var(--deep);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.investment-details {
+  border: 1px solid #edf1f3;
+  background: white;
+}
+
+.investment-details div {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  align-items: start;
+  gap: 8px;
+  padding: 7px 9px;
+}
+
+.investment-details dt,
+.investment-details dd {
+  font-size: 11px;
+  text-align: left;
+}
+
+.investment-details dd {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.investment-score {
+  display: grid;
+  width: 46px;
+  height: 46px;
+  place-items: center;
+  border: 1px solid #b8d7cd;
+  border-radius: 999px;
+  background: #f4faf7;
+  color: var(--deep);
+  font-size: 17px;
 }
 
 .note {
@@ -791,7 +905,13 @@ dl .total dd {
   .hero-grid,
   .assumption-grid,
   .comparison-grid,
-  .scenario-grid {
+  .scenario-grid,
+  .investment-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .investment-item,
+  .investment-details div {
     grid-template-columns: 1fr;
   }
 

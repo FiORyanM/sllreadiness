@@ -1,4 +1,5 @@
 import { sllComponentKeys } from "./sllExtractionSchema.js";
+import { normalizeSustainabilityInvestmentAnalysis } from "../models/sustainabilityInvestmentModel.js";
 
 export const genericDealDefaults = Object.freeze({
   loanSizeM: 500,
@@ -42,6 +43,10 @@ export function normalizeAiExtraction(extraction, { evidences = [], metadata } =
       ...extraction.analysis,
       kpis: normalizeKpis(extraction?.analysis?.kpis ?? [], citations),
       gaps: normalizeGaps(extraction?.analysis?.gaps ?? [], citations),
+      sustainabilityInvestments: normalizeSustainabilityInvestmentAnalysis(
+        extraction?.analysis?.sustainabilityInvestments,
+        citations,
+      ),
       baseMarginNote:
         extraction?.analysis?.baseMarginNote ||
         "Illustrative 150bps base margin and 500m / 5-year facility assumptions are shown because no loan facility was identified in the report. Replace them with the proposed facility terms.",
