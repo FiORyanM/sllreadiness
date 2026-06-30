@@ -55,6 +55,9 @@ const tsmcScoring = weightedReadinessFromScores(tsmcFixture.modelInputs.componen
 assert.equal(tsmcScoring.band, "high");
 assert.equal(tsmcScoring.score100, 91);
 assert.equal(tsmcFixture.analysis.kpis.length, 4);
+assert.equal(demoFixtureCitationsUsePdfPages(aiibFixture), true);
+assert.equal(demoFixtureCitationsUsePdfPages(nvidiaFixture), true);
+assert.equal(demoFixtureCitationsUsePdfPages(tsmcFixture), true);
 
 const executionCost = calculateExecutionCost({
   readinessBand: scoring.band,
@@ -81,6 +84,25 @@ const worst = calculateScenario(inputs, aiibFixture.dealDefaults.ratchetWorst, e
 
 assert.equal(best.netSaving, 2875000);
 assert.equal(worst.netSaving, 955000);
+
+function demoFixtureCitationsUsePdfPages(value) {
+  const citations = collectFixtureCitations(value);
+  return citations.length > 0 && citations.every((citation) =>
+    citation.quote &&
+    Array.isArray(citation.pages) &&
+    citation.pages.length > 0 &&
+    citation.pages.every((page) => Number.isInteger(page) && page > 0) &&
+    !citation.sourceLabel
+  );
+}
+
+function collectFixtureCitations(value, output = []) {
+  if (!value || typeof value !== "object") return output;
+  if (value.quote || value.pages || value.sourceLabel) output.push(value);
+  if (Array.isArray(value)) value.forEach((item) => collectFixtureCitations(item, output));
+  else Object.values(value).forEach((item) => collectFixtureCitations(item, output));
+  return output;
+}
 
 assert.equal(
   validatePdfFile({
