@@ -852,6 +852,198 @@ dl .total dd {
   line-height: 1.4;
 }
 
+.admin-view {
+  width: min(1240px, 100%);
+  margin: 0 auto;
+}
+
+.admin-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: start;
+  padding: 24px;
+  border: 1px solid #d6dde2;
+  background: var(--paper);
+  box-shadow: var(--shadow);
+}
+
+.admin-header h1 {
+  margin: 8px 0 0;
+  color: var(--ink);
+  font-size: 34px;
+  line-height: 1.05;
+}
+
+.admin-header p:last-child {
+  max-width: 760px;
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.admin-callout {
+  margin-top: 12px;
+  padding: 16px 18px;
+  border: 1px solid #9bc5c7;
+  border-left: 4px solid var(--teal);
+  background: var(--teal-soft);
+}
+
+.admin-callout span,
+.explanation-item span,
+.framework-version {
+  color: var(--deep);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.admin-callout p {
+  margin: 6px 0 0;
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.admin-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.admin-panel {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+}
+
+.admin-panel-wide {
+  grid-column: 1 / -1;
+}
+
+.admin-panel-copy,
+.admin-footnote {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.admin-footnote {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.framework-version {
+  margin: 8px 0 12px;
+  color: var(--teal);
+}
+
+.framework-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+}
+
+.framework-table {
+  width: 100%;
+  min-width: 860px;
+  border-collapse: collapse;
+  background: white;
+}
+
+.framework-table th,
+.framework-table td {
+  padding: 10px;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink);
+  font-size: 12px;
+  line-height: 1.4;
+  text-align: left;
+  vertical-align: top;
+}
+
+.framework-table thead th {
+  background: var(--deep);
+  color: white;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.framework-table tbody th {
+  width: 170px;
+  color: var(--deep);
+  font-size: 13px;
+}
+
+.framework-table tbody tr:last-child th,
+.framework-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.framework-table td:nth-child(2) {
+  width: 78px;
+  color: var(--teal);
+}
+
+.explanation-stack {
+  display: grid;
+  gap: 10px;
+}
+
+.explanation-item {
+  padding: 11px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+}
+
+.explanation-item p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.dimension-detail-list {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.dimension-detail {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+}
+
+.dimension-detail h3 {
+  margin: 0;
+  color: var(--deep);
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+.dimension-detail p,
+.dimension-detail small {
+  display: block;
+  margin: 7px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.dimension-detail small {
+  color: #52656c;
+}
+
 @media (max-width: 1100px) {
   .workflow-grid {
     grid-template-columns: 1fr;
@@ -867,6 +1059,10 @@ dl .total dd {
 
   .content-grid {
     grid-template-columns: 1fr;
+  }
+
+  .dimension-detail-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -893,6 +1089,7 @@ dl .total dd {
   }
 
   .report-header,
+  .admin-header,
   .section-heading.with-action {
     display: grid;
     text-align: left;
@@ -906,13 +1103,27 @@ dl .total dd {
   .assumption-grid,
   .comparison-grid,
   .scenario-grid,
-  .investment-summary-grid {
+  .investment-summary-grid,
+  .admin-grid,
+  .dimension-detail-list {
     grid-template-columns: 1fr;
   }
 
   .investment-item,
   .investment-details div {
     grid-template-columns: 1fr;
+  }
+
+  .admin-header {
+    padding: 20px;
+  }
+
+  .admin-header h1 {
+    font-size: 28px;
+  }
+
+  .admin-callout p {
+    font-size: 14px;
   }
 
   .versus {

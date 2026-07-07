@@ -3,6 +3,7 @@ import { nvidiaFixture } from "./fixtures/nvidia.js";
 import { tsmcFixture } from "./fixtures/tsmc.js";
 import { extractPdfText } from "./extraction/pdfExtractionAdapter.js";
 import { validateSllExtractionJson } from "./extraction/sllExtractionAdapter.js";
+import { frameworkContent } from "./frameworkContent.js";
 import { mapExtractionToReport } from "./mappers/reportMapper.js";
 import { calculateExecutionCost } from "./models/costModel.js";
 import { calculateScenario, clamp, dollars, loanMillions, signedDollars } from "./models/financialModel.js";
@@ -18,6 +19,7 @@ let activeExtractionJob = null;
 const view = {
   start: document.getElementById("start-view"),
   report: document.getElementById("report-view"),
+  admin: document.getElementById("admin-view"),
   status: document.getElementById("start-status"),
   selectedFile: document.getElementById("selected-file"),
   uploadButton: document.getElementById("upload-preview-button"),
@@ -315,6 +317,99 @@ function escapeHtml(value) {
     .replace(/'/g, "&#039;");
 }
 
+function renderFrameworkAdmin() {
+  document.getElementById("admin-title").textContent = frameworkContent.title;
+  document.getElementById("admin-subtitle").textContent = frameworkContent.subtitle;
+  document.getElementById("admin-core-idea").textContent = frameworkContent.coreIdea;
+  document.getElementById("admin-evidence-rule").textContent = frameworkContent.evidenceRule;
+  document.getElementById("admin-extraction-note").textContent = frameworkContent.extractionNote;
+  document.getElementById("admin-presenter-sentence").textContent = frameworkContent.presenterSentence;
+  document.getElementById("admin-investment-summary").textContent = frameworkContent.investmentLens.summary;
+  document.getElementById("admin-investment-version").textContent = `Framework version: ${frameworkContent.investmentLens.frameworkVersion}`;
+  document.getElementById("admin-investment-interpretation").textContent = frameworkContent.investmentLens.interpretation;
+
+  document.getElementById("admin-sll-dimensions").innerHTML = frameworkContent.sllDimensions
+    .map(
+      (dimension) => `
+        <tr>
+          <th scope="row">${escapeHtml(dimension.label)}</th>
+          <td><strong>${escapeHtml(dimension.weightLabel)}</strong></td>
+          <td>${escapeHtml(dimension.question)}</td>
+          <td>${escapeHtml(dimension.looksFor)}</td>
+          <td>${escapeHtml(dimension.example)}</td>
+        </tr>
+      `,
+    )
+    .join("");
+
+  document.getElementById("admin-score-explanation").innerHTML = [
+    ["Score", frameworkContent.scoreExplanation.summary],
+    ["Weighting", frameworkContent.scoreExplanation.weighting],
+    ["Interpretation", frameworkContent.scoreExplanation.interpretation],
+  ]
+    .map(
+      ([label, copy]) => `
+        <div class="explanation-item">
+          <span>${escapeHtml(label)}</span>
+          <p>${escapeHtml(copy)}</p>
+        </div>
+      `,
+    )
+    .join("");
+
+  document.getElementById("admin-dimension-details").innerHTML = frameworkContent.sllDimensions
+    .map(
+      (dimension) => `
+        <section class="dimension-detail">
+          <h3>${escapeHtml(dimension.label)}</h3>
+          <p>${escapeHtml(dimension.explanation)}</p>
+          <small>${escapeHtml(dimension.weakEvidence)}</small>
+        </section>
+      `,
+    )
+    .join("");
+
+  document.getElementById("admin-investment-criteria").innerHTML = frameworkContent.investmentLens.criteria
+    .map(
+      (criterion) => `
+        <tr>
+          <th scope="row">${escapeHtml(criterion.label)}</th>
+          <td><strong>${escapeHtml(criterion.weightLabel)}</strong></td>
+          <td>${escapeHtml(criterion.looksFor)}</td>
+          <td>${escapeHtml(criterion.example)}</td>
+        </tr>
+      `,
+    )
+    .join("");
+}
+
+function showStartView({ clearHash = false } = {}) {
+  view.start.classList.remove("is-hidden");
+  view.report.classList.add("is-hidden");
+  view.admin.classList.add("is-hidden");
+  if (clearHash && window.location.hash) {
+    history.pushState("", document.title, window.location.pathname + window.location.search);
+  }
+}
+
+function showAdminView() {
+  view.start.classList.add("is-hidden");
+  view.report.classList.add("is-hidden");
+  view.admin.classList.remove("is-hidden");
+}
+
+function routeFromHash() {
+  if (window.location.hash === "#framework-admin") {
+    showAdminView();
+    return true;
+  }
+
+  if (!view.admin.classList.contains("is-hidden")) {
+    showStartView();
+  }
+  return false;
+}
+
 function setUploadStatus(message, tone = "neutral") {
   view.status.textContent = message;
   view.status.dataset.tone = tone;
@@ -375,6 +470,7 @@ function showReport(report, statusMessage) {
 
   view.start.classList.add("is-hidden");
   view.report.classList.remove("is-hidden");
+  view.admin.classList.add("is-hidden");
   setUploadStatus(statusMessage);
 }
 
@@ -642,6 +738,7 @@ async function safeReadJson(response) {
 }
 
 function init() {
+  renderFrameworkAdmin();
   view.uploadButton.disabled = false;
 
   Object.values(fields).forEach((field) => {
@@ -666,6 +763,10 @@ function init() {
 
   view.retryButton.addEventListener("click", retryPendingAnalysis);
   view.cancelButton.addEventListener("click", cancelActiveAnalysis);
+  document.getElementById("admin-back-button").addEventListener("click", () => {
+    showStartView({ clearHash: true });
+  });
+  window.addEventListener("hashchange", routeFromHash);
 
   document.addEventListener("click", (event) => {
     const analyzeButton = event.target.closest("#upload-preview-button");
@@ -676,7 +777,9 @@ function init() {
 
   document.getElementById("report-upload").addEventListener("change", handleUploadSelection);
   document.getElementById("report-upload").addEventListener("input", handleUploadSelection);
-  void restoreActiveJob();
+  if (!routeFromHash()) {
+    void restoreActiveJob();
+  }
 }
 
 init();

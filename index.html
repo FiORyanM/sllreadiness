@@ -266,8 +266,103 @@
           Based on 2024 AIIB Sustainability Report - SLLP March 2025 - Execution cost figures are indicative estimates - Adjust parameters above to update all figures
         </footer>
       </section>
+
+      <section class="admin-view is-hidden" id="admin-view" aria-label="Analysis framework admin">
+        <header class="admin-header">
+          <div>
+            <p class="eyebrow">Internal Framework View</p>
+            <h1 id="admin-title">Analysis Framework Admin</h1>
+            <p id="admin-subtitle"></p>
+          </div>
+          <button class="secondary-button" id="admin-back-button" type="button">Back to Analysis Tool</button>
+        </header>
+
+        <section class="admin-callout" aria-label="Core framework idea">
+          <span>Core idea</span>
+          <p id="admin-core-idea"></p>
+        </section>
+
+        <section class="admin-grid">
+          <article class="admin-panel admin-panel-wide">
+            <div class="section-heading">
+              <h2>SLL Readiness Framework</h2>
+            </div>
+            <div class="framework-table-wrap">
+              <table class="framework-table">
+                <thead>
+                  <tr>
+                    <th>Dimension</th>
+                    <th>Weight</th>
+                    <th>Plain-English question</th>
+                    <th>What it looks for</th>
+                    <th>Example useful evidence</th>
+                  </tr>
+                </thead>
+                <tbody id="admin-sll-dimensions"></tbody>
+              </table>
+            </div>
+          </article>
+
+          <article class="admin-panel">
+            <div class="section-heading">
+              <h2>How the Score Works</h2>
+            </div>
+            <div class="explanation-stack" id="admin-score-explanation"></div>
+          </article>
+
+          <article class="admin-panel">
+            <div class="section-heading">
+              <h2>Evidence-First Rule</h2>
+            </div>
+            <p class="admin-panel-copy" id="admin-evidence-rule"></p>
+          </article>
+
+          <article class="admin-panel admin-panel-wide">
+            <div class="section-heading">
+              <h2>Dimension Explanation</h2>
+            </div>
+            <div class="dimension-detail-list" id="admin-dimension-details"></div>
+          </article>
+
+          <article class="admin-panel admin-panel-wide">
+            <div class="section-heading">
+              <h2>Sustainability Investment & Carbon-Credit Lens</h2>
+            </div>
+            <p class="admin-panel-copy" id="admin-investment-summary"></p>
+            <p class="framework-version" id="admin-investment-version"></p>
+            <div class="framework-table-wrap">
+              <table class="framework-table">
+                <thead>
+                  <tr>
+                    <th>Criterion</th>
+                    <th>Weight</th>
+                    <th>What it looks for</th>
+                    <th>Example</th>
+                  </tr>
+                </thead>
+                <tbody id="admin-investment-criteria"></tbody>
+              </table>
+            </div>
+            <p class="admin-footnote" id="admin-investment-interpretation"></p>
+          </article>
+
+          <article class="admin-panel">
+            <div class="section-heading">
+              <h2>AI-Assisted Extraction</h2>
+            </div>
+            <p class="admin-panel-copy" id="admin-extraction-note"></p>
+          </article>
+
+          <article class="admin-panel">
+            <div class="section-heading">
+              <h2>Presentation Sentence</h2>
+            </div>
+            <p class="admin-panel-copy" id="admin-presenter-sentence"></p>
+          </article>
+        </section>
+      </section>
     </main>
 
-    <script type="module" src="app.js?v=sustainability-investment-20260630"></script>
+    <script type="module" src="app.js?v=framework-admin-20260707"></script>
   </body>
 </html>
