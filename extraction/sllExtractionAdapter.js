@@ -1,3 +1,5 @@
+import { normalizeSustainabilityProfile } from "../models/sustainabilityAnalysisModel.js";
+
 const componentLabels = {
   kpiDataHistory: "KPI data history",
   kpiMethodology: "KPI methodology",
@@ -24,6 +26,10 @@ export function extractSllReadinessJson({ text, metadata }) {
   const sllpAlignment = buildSllpAlignment(signals);
   const gaps = detectGaps(signals, kpis);
   const sustainabilityInvestments = detectSustainabilityInvestments(text, normalized);
+  const sustainabilityProfile = normalizeSustainabilityProfile({}, {
+    company: { name: detectedCompany, reportTitle: reportingYear ? `${reportingYear} sustainability report` : "Uploaded ESG report" },
+    investmentAnalysis: sustainabilityInvestments,
+  });
   const hasLowConfidence = signals.lowConfidence || kpis.some((kpi) => kpi.confidence === "low");
 
   return {
@@ -54,6 +60,7 @@ export function extractSllReadinessJson({ text, metadata }) {
       gaps,
       sllpAlignment,
       sustainabilityInvestments,
+      sustainabilityProfile,
       baseMarginNote:
         "150bps is a generic placeholder for first-pass screening. Replace with actual loan margin for decision-useful economics.",
     },

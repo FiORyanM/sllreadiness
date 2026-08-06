@@ -1,5 +1,6 @@
 import { sllComponentKeys } from "./sllExtractionSchema.js";
 import { normalizeSustainabilityInvestmentAnalysis } from "../models/sustainabilityInvestmentModel.js";
+import { normalizeSustainabilityProfile } from "../models/sustainabilityAnalysisModel.js";
 
 export const genericDealDefaults = Object.freeze({
   loanSizeM: 500,
@@ -28,6 +29,11 @@ export function normalizeAiExtraction(extraction, { evidences = [], metadata } =
   const componentsByKey = normalizeComponents(originalComponents, citations);
   const citedComponentCount = Object.values(componentsByKey).filter((component) => component.citations.length > 0).length;
 
+  const sustainabilityInvestments = normalizeSustainabilityInvestmentAnalysis(
+    extraction?.analysis?.sustainabilityInvestments,
+    citations,
+  );
+
   return {
     ...extraction,
     source: { ...extraction.source, ...(metadata ?? {}) },
@@ -43,9 +49,10 @@ export function normalizeAiExtraction(extraction, { evidences = [], metadata } =
       ...extraction.analysis,
       kpis: normalizeKpis(extraction?.analysis?.kpis ?? [], citations),
       gaps: normalizeGaps(extraction?.analysis?.gaps ?? [], citations),
-      sustainabilityInvestments: normalizeSustainabilityInvestmentAnalysis(
-        extraction?.analysis?.sustainabilityInvestments,
-        citations,
+      sustainabilityInvestments,
+      sustainabilityProfile: normalizeSustainabilityProfile(
+        extraction?.analysis?.sustainabilityProfile,
+        { company: extraction?.company, investmentAnalysis: sustainabilityInvestments },
       ),
       baseMarginNote:
         extraction?.analysis?.baseMarginNote ||

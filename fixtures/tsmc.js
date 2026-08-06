@@ -119,6 +119,22 @@ export const tsmcFixture = {
         },
       ],
     },
+    sustainabilityProfile: {
+      sector: { key: "semiconductors", confidence: "High" },
+      emissions: { year: 2024, scope1Tco2e: 1581312, scope2Tco2e: 10926644, scope3Tco2e: null, totalTco2e: null, citations: [tsmcCitations.assurance] },
+      target: null,
+      internalInvestments: [{
+        name: "Renewable energy procurement",
+        category: "renewable_energy",
+        amountUsd: null,
+        expectedAbatementTco2e: null,
+        status: "underway",
+        verified: false,
+        expectedImpact: "Increase renewable electricity use toward the disclosed 2030 goal.",
+        citations: [tsmcCitations.renewableInvestment],
+      }],
+      carbonCredits: { disclosureStatus: "not_disclosed", purchasedTco2e: null, retiredTco2e: null, contractedTco2e: null, mix: [], registry: "", methodology: "", verified: false, procurementType: "", claimMade: false, doubleCountingConcern: false, citations: [] },
+    },
     baseMarginNote:
       "150bps is a generic corporate placeholder. Replace with TSMC-specific financing assumptions for decision-useful economics.",
   },

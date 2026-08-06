@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles.css?v=result-first-20260806" />
   </head>
   <body>
     <main class="app-shell">
@@ -39,10 +39,11 @@
               <button class="primary-button" id="demo-button" type="button">Try AIIB Demo</button>
               <button class="primary-button" id="nvidia-demo-button" type="button">Try NVIDIA Demo</button>
               <button class="primary-button" id="tsmc-demo-button" type="button">Try TSMC Demo</button>
+              <button class="primary-button investment-demo-button" id="tsmc-investment-demo-button" type="button">Try TSMC Sustainability Investment Demo</button>
               <button class="secondary-button" id="upload-preview-button" type="button">Analyze Uploaded PDF</button>
             </div>
             <p class="status-message" id="start-status" role="status">
-              Demo mode includes AIIB, NVIDIA and TSMC sample readiness reports.
+              Demo mode includes three SLL readiness reports and a precomputed TSMC sustainability investment brief.
             </p>
             <button class="secondary-button is-hidden" id="retry-analysis-button" type="button">Retry AI Analysis</button>
             <button class="secondary-button is-hidden" id="cancel-analysis-button" type="button">Cancel Analysis</button>
@@ -242,23 +243,25 @@
           </article>
 
           <article class="section-panel investment-panel">
-            <div class="section-heading">
-              <h2>Sustainability Investment & Carbon Credit Pathway</h2>
-            </div>
-            <div class="investment-summary-grid">
+            <div class="section-heading with-action">
               <div>
-                <span>Investment rating</span>
-                <strong id="investment-rating">No cited investment evidence</strong>
-              </div>
-              <div>
-                <span>Carbon credit opportunity</span>
-                <strong id="investment-score">Not assessed</strong>
+                <p class="eyebrow">Optional decision brief</p>
+                <h2>Climate Capital & Carbon Credit Strategy</h2>
               </div>
             </div>
-            <p class="investment-thesis" id="investment-thesis">
-              Ask for project-level capex, expected emissions impact and any existing offset/credit strategy before discussing carbon credit transactions.
-            </p>
-            <div id="investment-list" class="investment-list"></div>
+            <div class="credit-strategy-teaser">
+              <div>
+                <strong id="credit-strategy-evidence-summary">No cited climate-capital evidence detected.</strong>
+                <p id="investment-thesis">Prioritize internal decarbonization capital, determine whether sourcing should start now, and compare three-year procurement timing.</p>
+              </div>
+              <ul>
+                <li>Which internal investments should be prioritized?</li>
+                <li>Buy now, start sourcing, prepare, or wait?</li>
+                <li>What quality, type and contracting form is appropriate?</li>
+              </ul>
+              <button class="primary-button" id="open-credit-strategy-button" type="button">Build Carbon Credit Strategy</button>
+              <button class="secondary-button is-hidden" id="open-credit-strategy-demo-button" type="button">View TSMC Investment Demo</button>
+            </div>
           </article>
         </section>
 
@@ -266,6 +269,93 @@
           Based on 2024 AIIB Sustainability Report - SLLP March 2025 - Execution cost figures are indicative estimates - Adjust parameters above to update all figures
         </footer>
       </section>
+
+      <section class="strategy-view is-hidden" id="credit-strategy-view" aria-label="Climate capital and carbon credit decision brief">
+        <header class="strategy-header">
+          <div>
+            <p class="eyebrow">Sustainability Investment & Carbon-Credit Plan</p>
+            <h1 id="strategy-company">Semiconductor strategy</h1>
+            <p>This report answers two questions: are internal emissions-reduction projects sufficiently funded, and should the company buy carbon credits now?</p>
+          </div>
+          <button class="secondary-button" id="strategy-back-button" type="button">Back to home</button>
+        </header>
+
+        <div class="strategy-flow">
+          <section class="strategy-summary is-hidden" id="credit-strategy-summary" aria-label="Management summary">
+            <div class="illustrative-banner" id="strategy-assumption-banner">Example assumptions only — not a price quote.</div>
+            <article class="management-card">
+              <div><span>Recommended action now</span><h2 id="strategy-action">Prepare first</h2><p id="strategy-recommended-procurement"></p></div>
+              <div><strong>Why</strong><ul id="strategy-reasons"></ul></div>
+              <div><strong>What to do next</strong><ul id="strategy-conditions"></ul></div>
+            </article>
+            <div class="strategy-facts" aria-label="Key planning facts">
+              <article><span>Annual planning proxy</span><strong id="strategy-fact-volume">627,000 tonnes</strong><small>Example volume, not a purchase recommendation</small></article>
+              <article><span>First possible need</span><strong id="strategy-fact-year">2030</strong><small>Planning assumption</small></article>
+              <article><span>Three-year example payments</span><strong id="strategy-fact-cash-cost">$98.9M</strong><small>Uses example prices, not a market quote</small></article>
+              <article><span>Largest information gap</span><strong id="strategy-fact-gap">Project costs</strong><small>Not disclosed in the report</small></article>
+            </div>
+          </section>
+
+          <details class="strategy-assumptions" id="strategy-assumptions">
+            <summary><span>View or change the planning assumptions</span><small>Volume, timing, budget and risk settings used in the cost comparison</small></summary>
+            <div class="strategy-questionnaire" aria-labelledby="strategy-input-title">
+              <div class="section-heading"><h2 id="strategy-input-title">Planning assumptions</h2></div>
+              <p class="helper-copy" id="strategy-questionnaire-copy">Report evidence is prefilled where available. Confirmed values drive deterministic calculations.</p>
+              <label class="check-row"><input id="strategy-boundary" type="checkbox" /><span>The emissions covered by the target are confirmed</span></label>
+              <label class="check-row"><input id="strategy-public-claim" type="checkbox" /><span>The company may publicly claim that credits compensate for emissions</span></label>
+              <label><span>First year credits may be needed</span><input id="strategy-use-year" type="number" min="2027" max="2100" /></label>
+              <label><span>Estimated credits needed each year</span><small>Measured in tonnes of CO₂-equivalent, which puts different greenhouse gases on one common scale.</small><input id="strategy-demand-volume" type="number" min="0" step="1000" /></label>
+              <label><span>How certain is this annual need?</span><select id="strategy-demand-confidence"><option>Low</option><option selected>Medium</option><option>High</option></select></label>
+              <label><span>Maximum annual spend (USD, if known)</span><input id="strategy-budget" type="number" min="0" step="100000" /></label>
+              <label><span>Willingness to accept delivery and price risk</span><select id="strategy-risk"><option value="low">Low</option><option value="balanced" selected>Balanced</option><option value="high">High</option></select></label>
+              <label><span>Maximum payment before credits are delivered (%)</span><input id="strategy-upfront" type="number" min="0" max="100" value="30" /></label>
+              <label><span>Rate used to compare future payments with today's money (%)</span><input id="strategy-cost-capital" type="number" min="0" max="100" step="0.1" value="8" /></label>
+              <button class="primary-button" id="generate-credit-strategy-button" type="button">Recalculate Scenario</button>
+              <p class="status-message" id="credit-strategy-status" role="status"></p>
+            </div>
+          </details>
+
+          <main class="strategy-results is-hidden" id="credit-strategy-results">
+            <article class="strategy-panel">
+              <div class="section-heading"><h2>Internal projects with the greatest emissions impact</h2><span>Ordered by potential emissions reduction, timing and implementation progress.</span></div>
+              <div class="priority-grid" id="strategy-priorities"></div>
+            </article>
+
+            <article class="strategy-panel">
+              <div class="section-heading"><h2>What the three purchase options could cost</h2><span>All options use the same estimated annual need, so their costs can be compared fairly.</span></div>
+              <div class="scenario-grid" id="strategy-scenarios"></div>
+              <div class="cashflow-chart" id="strategy-cashflow-chart"></div>
+            </article>
+
+            <article class="strategy-panel">
+              <div class="section-heading"><h2>What any future carbon credits must meet</h2><span>A practical checklist for quality, tracking and contract protection.</span></div>
+              <div class="quality-checklist" id="strategy-specification"></div>
+            </article>
+
+            <section class="supporting-assessment" aria-labelledby="supporting-assessment-title">
+              <div class="section-heading"><h2 id="supporting-assessment-title">Supporting assessment</h2><span>These checks support the recommendation; they are not the starting point for the decision.</span></div>
+              <div class="strategy-score-grid">
+                <article><span>Are internal projects sufficiently funded?</span><strong id="strategy-capital-score">Not enough data</strong><small id="strategy-capital-confidence"></small><div id="strategy-capital-drivers"></div></article>
+                <article><span>Do existing carbon credits meet quality requirements?</span><strong id="strategy-portfolio-score">No portfolio disclosed</strong><small id="strategy-portfolio-confidence"></small><div id="strategy-portfolio-drivers"></div></article>
+              </div>
+            </section>
+
+            <details class="strategy-method">
+              <summary>How the numbers were calculated and where the evidence came from</summary>
+              <div id="strategy-method-content"></div>
+            </details>
+            <button class="primary-button advisory-button" id="book-advisory-button" type="button">Discuss next steps with an adviser</button>
+          </main>
+        </div>
+      </section>
+
+      <dialog id="advisory-dialog" class="advisory-dialog">
+        <form method="dialog">
+          <div class="section-heading with-action"><h2>Summary for an adviser</h2><button class="secondary-button" value="cancel">Close</button></div>
+          <p>This demo prepares the handoff but does not submit personal data.</p>
+          <textarea id="advisory-summary" readonly aria-label="Prefilled advisory request"></textarea>
+        </form>
+      </dialog>
 
       <section class="admin-view is-hidden" id="admin-view" aria-label="Analysis framework admin">
         <header class="admin-header">
@@ -363,6 +453,6 @@
       </section>
     </main>
 
-    <script type="module" src="app.js?v=framework-admin-20260707"></script>
+    <script type="module" src="app.js?v=result-first-20260806"></script>
   </body>
 </html>

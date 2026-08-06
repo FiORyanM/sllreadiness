@@ -11,7 +11,7 @@ export class SupabaseAnalysisRepository {
   async createOrReuseJob({ text, metadata, chunks }) {
     // Include the pipeline version so contract-valid but semantically invalid
     // results from earlier scoring logic are not reused from the cache.
-    const reportHash = sha256(`sll-readiness-v9-identification-page:${text}`);
+    const reportHash = sha256(`sll-readiness-v10-sustainability-profile:${text}`);
     const cached = await this.findCachedResult(reportHash);
     const token = createToken();
     const job = {
@@ -128,6 +128,98 @@ export class SupabaseAnalysisRepository {
     await this.request(`/rest/v1/analysis_jobs?expires_at=lt.${encodeURIComponent(new Date().toISOString())}`, { method: "DELETE" });
   }
 
+  async createOrReuseSustainabilityJob({ sourceJobId, token, cacheKey, input, frameworkVersion, benchmarkVersion, expiresAt }) {
+    const cached = await this.request(
+      `/rest/v1/sustainability_analysis_jobs?select=*&cache_key=eq.${cacheKey}&status=eq.completed&expires_at=gt.${encodeURIComponent(new Date().toISOString())}&order=created_at.desc&limit=1`,
+    );
+    if (cached[0]) return { job: sustainabilitySnapshot({ ...cached[0], cache_hit: true }) };
+    const [created] = await this.request("/rest/v1/sustainability_analysis_jobs", {
+      method: "POST",
+      prefer: "return=representation",
+      body: {
+        source_job_id: sourceJobId,
+        job_token_hash: sha256(token),
+        cache_key: cacheKey,
+        input,
+        framework_version: frameworkVersion,
+        benchmark_version: benchmarkVersion,
+        status: "queued",
+        stage: "Queued for sustainability analysis",
+        expires_at: expiresAt,
+      },
+    });
+    return { job: sustainabilitySnapshot(created) };
+  }
+
+  async getSustainabilityJob(id) {
+    const [job] = await this.request(`/rest/v1/sustainability_analysis_jobs?select=*&id=eq.${encodeURIComponent(id)}`);
+    return job ? sustainabilityRecord(job) : null;
+  }
+
+  async getAuthorizedSustainabilityJob(id, token) {
+    if (!token) return null;
+    const [job] = await this.request(`/rest/v1/sustainability_analysis_jobs?select=*&id=eq.${encodeURIComponent(id)}&job_token_hash=eq.${sha256(token)}`);
+    return job ? sustainabilitySnapshot(job) : null;
+  }
+
+  async updateSustainabilityJob(id, patch) {
+    await this.request(`/rest/v1/sustainability_analysis_jobs?id=eq.${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      body: { ...toSustainabilityDatabasePatch(patch), updated_at: new Date().toISOString() },
+    });
+  }
+
+  async listRunnableSustainabilityJobs() {
+    const jobs = await this.request("/rest/v1/sustainability_analysis_jobs?select=*&status=in.(queued,processing)&order=created_at.asc");
+    return jobs.map(sustainabilityRecord);
+  }
+
+  async createOrReuseCreditStrategyJob({ sourceJobId, token, cacheKey, input, frameworkVersion, marketVersion, expiresAt }) {
+    const cached = await this.request(
+      `/rest/v1/credit_strategy_analysis_jobs?select=*&cache_key=eq.${cacheKey}&status=eq.completed&expires_at=gt.${encodeURIComponent(new Date().toISOString())}&order=created_at.desc&limit=1`,
+    );
+    if (cached[0]) return { job: creditStrategySnapshot({ ...cached[0], cache_hit: true }) };
+    const [created] = await this.request("/rest/v1/credit_strategy_analysis_jobs", {
+      method: "POST",
+      prefer: "return=representation",
+      body: {
+        source_job_id: sourceJobId,
+        job_token_hash: sha256(token),
+        cache_key: cacheKey,
+        input,
+        framework_version: frameworkVersion,
+        market_version: marketVersion,
+        status: "queued",
+        stage: "Queued for credit strategy analysis",
+        expires_at: expiresAt,
+      },
+    });
+    return { job: creditStrategySnapshot(created) };
+  }
+
+  async getCreditStrategyJob(id) {
+    const [job] = await this.request(`/rest/v1/credit_strategy_analysis_jobs?select=*&id=eq.${encodeURIComponent(id)}`);
+    return job ? creditStrategyRecord(job) : null;
+  }
+
+  async getAuthorizedCreditStrategyJob(id, token) {
+    if (!token) return null;
+    const [job] = await this.request(`/rest/v1/credit_strategy_analysis_jobs?select=*&id=eq.${encodeURIComponent(id)}&job_token_hash=eq.${sha256(token)}`);
+    return job ? creditStrategySnapshot(job) : null;
+  }
+
+  async updateCreditStrategyJob(id, patch) {
+    await this.request(`/rest/v1/credit_strategy_analysis_jobs?id=eq.${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      body: { ...toCreditStrategyDatabasePatch(patch), updated_at: new Date().toISOString() },
+    });
+  }
+
+  async listRunnableCreditStrategyJobs() {
+    const jobs = await this.request("/rest/v1/credit_strategy_analysis_jobs?select=*&status=in.(queued,processing)&order=created_at.asc");
+    return jobs.map(creditStrategyRecord);
+  }
+
   async snapshot(id) {
     const job = await this.getJob(id);
     if (!job) return null;
@@ -174,6 +266,26 @@ export class SupabaseAnalysisRepository {
   }
 }
 
+export function createSupabaseSustainabilityAnalysisRepository(repository) {
+  return {
+    createOrReuse: (input) => repository.createOrReuseSustainabilityJob(input),
+    get: (id) => repository.getSustainabilityJob(id),
+    getAuthorized: (id, token) => repository.getAuthorizedSustainabilityJob(id, token),
+    update: (id, patch) => repository.updateSustainabilityJob(id, patch),
+    listRunnable: () => repository.listRunnableSustainabilityJobs(),
+  };
+}
+
+export function createSupabaseCreditStrategyRepository(repository) {
+  return {
+    createOrReuse: (input) => repository.createOrReuseCreditStrategyJob(input),
+    get: (id) => repository.getCreditStrategyJob(id),
+    getAuthorized: (id, token) => repository.getAuthorizedCreditStrategyJob(id, token),
+    update: (id, patch) => repository.updateCreditStrategyJob(id, patch),
+    listRunnable: () => repository.listRunnableCreditStrategyJobs(),
+  };
+}
+
 function createToken() {
   return randomBytes(32).toString("base64url");
 }
@@ -184,4 +296,90 @@ function sha256(value) {
 
 function expiresAt() {
   return new Date(Date.now() + 7 * 24 * 60 * 60 * 1_000).toISOString();
+}
+
+function sustainabilityRecord(job) {
+  return {
+    id: job.id,
+    sourceJobId: job.source_job_id,
+    cacheKey: job.cache_key,
+    tokenHash: job.job_token_hash,
+    input: job.input,
+    frameworkVersion: job.framework_version,
+    benchmarkVersion: job.benchmark_version,
+    status: job.status,
+    stage: job.stage,
+    result: job.result,
+    error: job.error,
+    expiresAt: job.expires_at,
+    cacheHit: job.cache_hit ?? false,
+  };
+}
+
+function sustainabilitySnapshot(job) {
+  const record = sustainabilityRecord(job);
+  return {
+    id: record.id,
+    sourceJobId: record.sourceJobId,
+    status: record.status,
+    stage: record.stage,
+    cacheHit: record.cacheHit,
+    frameworkVersion: record.frameworkVersion,
+    benchmarkVersion: record.benchmarkVersion,
+    error: record.error,
+    result: record.status === "completed" ? record.result : undefined,
+  };
+}
+
+function toSustainabilityDatabasePatch(patch) {
+  const mapping = {
+    sourceJobId: "source_job_id",
+    cacheKey: "cache_key",
+    frameworkVersion: "framework_version",
+    benchmarkVersion: "benchmark_version",
+  };
+  return Object.fromEntries(Object.entries(patch).map(([key, value]) => [mapping[key] ?? key, value]));
+}
+
+function creditStrategyRecord(job) {
+  return {
+    id: job.id,
+    sourceJobId: job.source_job_id,
+    cacheKey: job.cache_key,
+    tokenHash: job.job_token_hash,
+    input: job.input,
+    frameworkVersion: job.framework_version,
+    marketVersion: job.market_version,
+    status: job.status,
+    stage: job.stage,
+    result: job.result,
+    error: job.error,
+    expiresAt: job.expires_at,
+    cacheHit: job.cache_hit ?? false,
+  };
+}
+
+function creditStrategySnapshot(job) {
+  const record = creditStrategyRecord(job);
+  return {
+    id: record.id,
+    sourceJobId: record.sourceJobId,
+    status: record.status,
+    stage: record.stage,
+    cacheHit: record.cacheHit,
+    frameworkVersion: record.frameworkVersion,
+    marketVersion: record.marketVersion,
+    error: record.error,
+    result: record.status === "completed" ? record.result : undefined,
+  };
+}
+
+function toCreditStrategyDatabasePatch(patch) {
+  const mapping = {
+    sourceJobId: "source_job_id",
+    cacheKey: "cache_key",
+    frameworkVersion: "framework_version",
+    marketVersion: "market_version",
+  };
+  return Object.fromEntries(Object.entries(patch).map(([key, value]) => [mapping[key] ?? key, value]));
 }

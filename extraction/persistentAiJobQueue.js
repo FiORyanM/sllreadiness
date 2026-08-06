@@ -150,7 +150,7 @@ export function createPersistentAiJobQueue({ repository, providers, sleep = dela
         await waitForProvider(candidate);
         const rawExtraction = await candidate.invoke({
           prompt: buildFinalMergePrompt({ metadata: job.metadata, evidences: chunks.map((chunk) => chunk.evidence) }),
-          schemaVersion: "sll-readiness-extraction.v1",
+          schemaVersion: "sll-readiness-extraction.v2",
           config: { maxTokens: mergeMaxTokens, ...(candidate.config ?? {}) },
         });
         const extraction = normalizeAiExtraction(rawExtraction, {

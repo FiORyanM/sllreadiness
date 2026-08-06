@@ -1,27 +1,26 @@
 import { sllWeights } from "./models/scoringModel.js";
 import {
-  sustainabilityInvestmentCriteria,
-  sustainabilityInvestmentFrameworkVersion,
-} from "./models/sustainabilityInvestmentModel.js";
+  carbonPortfolioWeights,
+  internalInvestmentWeights,
+  sustainabilityAnalysisFrameworkVersion,
+} from "./models/sustainabilityAnalysisModel.js";
 
-const investmentLooksFor = {
-  useOfProceedsClarity: "A named investment and where money will be spent.",
-  decarbonizationLink: "A direct connection to emissions reduction or transition.",
-  quantification: "Money, capacity, energy or emissions impact is quantified.",
-  deliveryStatus: "Evidence that the project is approved, underway or complete.",
-  verification: "External standards, certification, assurance or auditability.",
-  carbonCreditFit: "Whether it reduces internal emissions or could potentially generate credits.",
-};
+const investmentCriteria = [
+  criterion("internal.targetGapCoverage", "Internal — target-gap coverage", internalInvestmentWeights.targetGapCoverage, "Quantified abatement compared with a matching-boundary target gap.", "Project abatement covers 70% of the remaining Scope 1 and 2 target gap."),
+  criterion("internal.capitalCommitment", "Internal — capital commitment", internalInvestmentWeights.capitalCommitment, "Comparable investment intensity with cited numerator and denominator.", "Transition capex as a share of total capex, compared only with peers using the same denominator."),
+  criterion("internal.materialityAlignment", "Internal — materiality alignment", internalInvestmentWeights.materialityAlignment, "Investment addresses material emissions sources and the disclosed target.", "Renewable electricity investment addresses a material Scope 2 source."),
+  criterion("internal.deliveryStatus", "Internal — delivery status", internalInvestmentWeights.deliveryStatus, "Approval, implementation, contracting or completion evidence.", "Board-approved project is underway with a disclosed completion year."),
+  criterion("internal.governanceVerification", "Internal — governance / verification", internalInvestmentWeights.governanceVerification, "Ownership, assurance, standards and project-level controls.", "Expected impact and delivery records are externally assured."),
+  criterion("carbon.volumeCoverage", "Credits — volume coverage", carbonPortfolioWeights.volumeCoverage, "Purchased, contracted or retired volume over matching residual emissions.", "Retired volume is compared with disclosed ongoing emissions, not total market volume."),
+  criterion("carbon.creditIntegrity", "Credits — integrity", carbonPortfolioWeights.creditIntegrity, "Registry, methodology, verification, additionality and double-counting controls.", "Registry and methodology are named and the intended claim is traceable."),
+  criterion("carbon.clientSectorFit", "Credits — client / sector fit", carbonPortfolioWeights.clientSectorFit, "Portfolio categories fit the client's residual-emissions context.", "Project selection reflects client geography, risk and hard-to-abate emissions."),
+  criterion("carbon.removalTrajectory", "Credits — removal trajectory", carbonPortfolioWeights.removalTrajectory, "Progressive shift toward removals and durable storage without a universal fixed percentage.", "Future procurement increases durable removal exposure toward the net-zero year."),
+  criterion("carbon.procurementClaims", "Credits — procurement / claims", carbonPortfolioWeights.procurementClaims, "Contracting, delivery, retirement, ownership and claim controls.", "Offtake terms and retirement evidence support the intended public claim."),
+];
 
-const investmentExamples = {
-  useOfProceedsClarity: "USD 50M solar capex for three manufacturing sites.",
-  decarbonizationLink: "Solar project replaces grid electricity and lowers Scope 2 emissions.",
-  quantification: "25 MW, 40 GWh/year and 20,000 tCO2e avoided annually.",
-  deliveryStatus: "Board-approved in 2025; construction underway; completion in 2027.",
-  verification: "ISO 14064 assurance or certified renewable-electricity records.",
-  carbonCreditFit:
-    "Energy efficiency is an internal reduction; a removal project may be credit supply after registry and additionality review.",
-};
+function criterion(key, label, weight, looksFor, example) {
+  return { key, label, weight, looksFor, example };
+}
 
 export const frameworkContent = {
   title: "Analysis Framework Admin",
@@ -108,16 +107,14 @@ export const frameworkContent = {
   extractionNote:
     "The tool performs AI-assisted first-pass document extraction. It looks for relevant company information, KPI evidence, targets, assurance language, reporting signals and possible gaps. The analysis is only as strong as the text available in the uploaded report, so users should treat the output as a structured starting point for review rather than a final expert judgment.",
   investmentLens: {
-    frameworkVersion: sustainabilityInvestmentFrameworkVersion,
+    frameworkVersion: sustainabilityAnalysisFrameworkVersion,
     summary:
-      "The latest MVP also reviews explicitly cited sustainability investments, projects, capex, procurement, offsets or credit activity. This is a separate assessment and does not change the five-component SLL readiness score.",
+      "The optional deep analysis separately rates internal decarbonization investment and carbon-credit portfolio adequacy. Peer percentiles require at least three comparable disclosures and do not change the five-component SLL readiness score.",
     interpretation:
-      "Internal decarbonization comes first. Carbon credits are considered for residual or hard-to-abate emissions, or as a possible project-supply pathway where eligibility can be demonstrated.",
-    criteria: sustainabilityInvestmentCriteria.map((criterion) => ({
+      "Internal decarbonization comes first. Missing disclosure produces Not assessable rather than a weak score; explicit zero activity remains a substantive data point. Credits are considered for residual or hard-to-abate emissions with integrity, retirement and claims controls.",
+    criteria: investmentCriteria.map((criterion) => ({
       ...criterion,
       weightLabel: `${criterion.weight}%`,
-      looksFor: investmentLooksFor[criterion.key],
-      example: investmentExamples[criterion.key],
     })),
   },
   presenterSentence:

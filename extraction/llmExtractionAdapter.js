@@ -217,6 +217,7 @@ export function mergeChunkExtractions(extractions, metadata) {
       gaps,
       sllpAlignment: mergeSllpAlignment(extractions),
       sustainabilityInvestments: mergeSustainabilityInvestments(extractions, investmentItems),
+      sustainabilityProfile: mergeSustainabilityProfiles(extractions),
       baseMarginNote:
         first.analysis?.baseMarginNote ||
         "150bps is a generic placeholder for first-pass screening. Replace with actual loan margin for decision-useful economics.",
@@ -343,6 +344,28 @@ function mergeSustainabilityInvestments(extractions, items) {
       "Ask for project-level capex, expected emissions impact and any existing offset/credit strategy before discussing carbon credit transactions.",
     items,
   };
+}
+
+function mergeSustainabilityProfiles(extractions) {
+  const profiles = extractions.map((extraction) => extraction.analysis?.sustainabilityProfile).filter(Boolean);
+  if (!profiles.length) return undefined;
+  const best = profiles.reduce((winner, profile) => {
+    if (!winner) return profile;
+    return profileEvidenceCount(profile) > profileEvidenceCount(winner) ? profile : winner;
+  }, null);
+  return {
+    ...best,
+    internalInvestments: uniqueByName(profiles.flatMap((profile) => profile.internalInvestments ?? [])),
+  };
+}
+
+function profileEvidenceCount(profile) {
+  return [
+    ...(profile.emissions?.citations ?? []),
+    ...(profile.target?.citations ?? []),
+    ...(profile.internalInvestments ?? []).flatMap((item) => item.citations ?? []),
+    ...(profile.carbonCredits?.citations ?? []),
+  ].length;
 }
 
 function mergeOverallConfidence(extractions) {

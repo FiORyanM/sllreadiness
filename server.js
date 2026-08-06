@@ -5,9 +5,11 @@ import { createServer } from "node:http";
 import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 import { configuredAiProviders } from "./extraction/aiProviderPool.js";
+import { buildCreditEvidencePrompt, createCreditStrategyJobQueue, createLocalCreditStrategyRepository } from "./extraction/creditStrategyJobQueue.js";
 import { createExtractionJobQueue } from "./extraction/extractionJobQueue.js";
 import { createPersistentAiJobQueue } from "./extraction/persistentAiJobQueue.js";
-import { SupabaseAnalysisRepository } from "./extraction/supabaseAnalysisRepository.js";
+import { SupabaseAnalysisRepository, createSupabaseCreditStrategyRepository, createSupabaseSustainabilityAnalysisRepository } from "./extraction/supabaseAnalysisRepository.js";
+import { createLocalSustainabilityAnalysisRepository, createSustainabilityAnalysisJobQueue } from "./extraction/sustainabilityAnalysisJobQueue.js";
 
 const rootDir = fileURLToPath(new URL(".", import.meta.url));
 loadDotEnv();
@@ -16,6 +18,8 @@ const port = Number(process.env.PORT ?? 3002);
 const host = normalizeHost(process.env.HOST ?? (process.env.PORT ? "0.0.0.0" : "127.0.0.1"));
 const maxJsonBytes = 2 * 1024 * 1024;
 const extractionJobs = createPersistentExtractionJobs();
+const sustainabilityJobs = createSustainabilityJobs(extractionJobs.repository);
+const creditStrategyJobs = createCreditStrategyJobs(extractionJobs.repository, extractionJobs.primaryProvider);
 
 const mimeTypes = {
   ".html": "text/html; charset=utf-8",
@@ -38,6 +42,46 @@ const server = createServer(async (request, response) => {
 
     if (request.method === "POST" && (request.url === "/api/extraction-jobs" || request.url === "/api/extract-sll")) {
       await handleCreateExtractionJob(request, response);
+      return;
+    }
+
+    if (request.method === "POST" && extractionJobIdFromUrl(request.url, "/sustainability-analyses")) {
+      await handleCreateSustainabilityAnalysis(request, response);
+      return;
+    }
+
+    if (request.method === "POST" && extractionJobIdFromUrl(request.url, "/credit-strategy-analyses")) {
+      await handleCreateCreditStrategyAnalysis(request, response);
+      return;
+    }
+
+    if (request.method === "POST" && creditStrategyAnalysisIdFromUrl(request.url, "/retry")) {
+      await handleRetryCreditStrategyAnalysis(request, response);
+      return;
+    }
+
+    if (request.method === "POST" && creditStrategyAnalysisIdFromUrl(request.url, "/cancel")) {
+      await handleCancelCreditStrategyAnalysis(request, response);
+      return;
+    }
+
+    if (request.method === "GET" && creditStrategyAnalysisIdFromUrl(request.url)) {
+      await handleGetCreditStrategyAnalysis(request, response);
+      return;
+    }
+
+    if (request.method === "POST" && sustainabilityAnalysisIdFromUrl(request.url, "/retry")) {
+      await handleRetrySustainabilityAnalysis(request, response);
+      return;
+    }
+
+    if (request.method === "POST" && sustainabilityAnalysisIdFromUrl(request.url, "/cancel")) {
+      await handleCancelSustainabilityAnalysis(request, response);
+      return;
+    }
+
+    if (request.method === "GET" && sustainabilityAnalysisIdFromUrl(request.url)) {
+      await handleGetSustainabilityAnalysis(request, response);
       return;
     }
 
@@ -92,6 +136,129 @@ async function handleCreateExtractionJob(request, response) {
 
   const { job, token } = await extractionJobs.createJob({ text, metadata });
   sendJson(response, job.cacheHit ? 200 : 202, { ok: true, job, jobToken: token });
+}
+
+async function handleCreateSustainabilityAnalysis(request, response) {
+  const sourceJobId = extractionJobIdFromUrl(request.url, "/sustainability-analyses");
+  const token = request.headers["x-extraction-job-token"];
+  const sourceJob = await extractionJobs.getAuthorizedJob(sourceJobId, token);
+  if (!sourceJob) {
+    sendJson(response, 404, { ok: false, message: "Extraction job was not found or the job token is invalid." });
+    return;
+  }
+  const extraction = sourceJob.result?.extraction;
+  if (sourceJob.status !== "completed" || !extraction) {
+    sendJson(response, 409, { ok: false, message: "Complete the report extraction before generating sustainability analysis." });
+    return;
+  }
+  const body = await readJsonBody(request);
+  const sectorOverride = ["semiconductors", "ict_technology", "development_finance", "market_only"].includes(body.sectorOverride)
+    ? body.sectorOverride
+    : undefined;
+  const job = await sustainabilityJobs.createJob({
+    sourceJobId,
+    token,
+    profile: extraction.analysis?.sustainabilityProfile ?? {},
+    options: { sectorOverride },
+  });
+  sendJson(response, job.status === "completed" ? 200 : 202, { ok: true, job });
+}
+
+async function handleCreateCreditStrategyAnalysis(request, response) {
+  const sourceJobId = extractionJobIdFromUrl(request.url, "/credit-strategy-analyses");
+  const token = request.headers["x-extraction-job-token"];
+  const sourceJob = await extractionJobs.getAuthorizedJob(sourceJobId, token);
+  if (!sourceJob) {
+    sendJson(response, 404, { ok: false, message: "Extraction job was not found or the job token is invalid." });
+    return;
+  }
+  const extraction = sourceJob.result?.extraction;
+  if (sourceJob.status !== "completed" || !extraction) {
+    sendJson(response, 409, { ok: false, message: "Complete report extraction before building a credit strategy." });
+    return;
+  }
+  const body = await readJsonBody(request);
+  const job = await creditStrategyJobs.createJob({
+    sourceJobId,
+    token,
+    company: extraction.company?.name ?? extraction.company?.label ?? "Company",
+    evidenceProfile: creditEvidenceFromSustainabilityProfile(extraction.analysis?.sustainabilityProfile ?? {}),
+    questionnaire: body.questionnaire ?? {},
+    confirmedOverrides: body.confirmedOverrides ?? {},
+  });
+  sendJson(response, job.status === "completed" ? 200 : 202, { ok: true, job });
+}
+
+async function handleGetCreditStrategyAnalysis(request, response) {
+  const job = await creditStrategyJobs.getAuthorized(
+    creditStrategyAnalysisIdFromUrl(request.url),
+    request.headers["x-extraction-job-token"],
+  );
+  if (!job) {
+    sendJson(response, 404, { ok: false, message: "Credit strategy analysis was not found or the job token is invalid." });
+    return;
+  }
+  sendJson(response, 200, { ok: true, job });
+}
+
+async function handleRetryCreditStrategyAnalysis(request, response) {
+  const job = await creditStrategyJobs.retry(
+    creditStrategyAnalysisIdFromUrl(request.url, "/retry"),
+    request.headers["x-extraction-job-token"],
+  );
+  if (!job) {
+    sendJson(response, 404, { ok: false, message: "Credit strategy analysis was not found or the job token is invalid." });
+    return;
+  }
+  sendJson(response, 202, { ok: true, job });
+}
+
+async function handleCancelCreditStrategyAnalysis(request, response) {
+  const job = await creditStrategyJobs.cancel(
+    creditStrategyAnalysisIdFromUrl(request.url, "/cancel"),
+    request.headers["x-extraction-job-token"],
+  );
+  if (!job) {
+    sendJson(response, 404, { ok: false, message: "Credit strategy analysis was not found or the job token is invalid." });
+    return;
+  }
+  sendJson(response, 200, { ok: true, job });
+}
+
+async function handleGetSustainabilityAnalysis(request, response) {
+  const job = await sustainabilityJobs.getAuthorized(
+    sustainabilityAnalysisIdFromUrl(request.url),
+    request.headers["x-extraction-job-token"],
+  );
+  if (!job) {
+    sendJson(response, 404, { ok: false, message: "Sustainability analysis was not found or the job token is invalid." });
+    return;
+  }
+  sendJson(response, 200, { ok: true, job });
+}
+
+async function handleRetrySustainabilityAnalysis(request, response) {
+  const job = await sustainabilityJobs.retry(
+    sustainabilityAnalysisIdFromUrl(request.url, "/retry"),
+    request.headers["x-extraction-job-token"],
+  );
+  if (!job) {
+    sendJson(response, 404, { ok: false, message: "Sustainability analysis was not found or the job token is invalid." });
+    return;
+  }
+  sendJson(response, 202, { ok: true, job });
+}
+
+async function handleCancelSustainabilityAnalysis(request, response) {
+  const job = await sustainabilityJobs.cancel(
+    sustainabilityAnalysisIdFromUrl(request.url, "/cancel"),
+    request.headers["x-extraction-job-token"],
+  );
+  if (!job) {
+    sendJson(response, 404, { ok: false, message: "Sustainability analysis was not found or the job token is invalid." });
+    return;
+  }
+  sendJson(response, 200, { ok: true, job });
 }
 
 async function handleGetExtractionJob(request, response) {
@@ -154,6 +321,7 @@ function createPersistentExtractionJobs() {
       queue,
       repository,
       providerNames,
+      primaryProvider: providers[0],
       createJob: (jobInput) => queue.createJob(jobInput),
       getAuthorizedJob: (id, token) => repository.getAuthorizedJob(id, token),
       retryJob: (id, token) => queue.retryJob(id, token),
@@ -166,6 +334,31 @@ function createPersistentExtractionJobs() {
     }
     return createLocalExtractionJobs({ providers, reason: error.message });
   }
+}
+
+function createSustainabilityJobs(extractionRepository) {
+  const repository = extractionRepository
+    ? createSupabaseSustainabilityAnalysisRepository(extractionRepository)
+    : createLocalSustainabilityAnalysisRepository();
+  const queue = createSustainabilityAnalysisJobQueue({ repository });
+  void queue.resume().catch((error) => console.error("Unable to resume sustainability analysis jobs:", error));
+  return queue;
+}
+
+function createCreditStrategyJobs(extractionRepository, provider) {
+  const repository = extractionRepository
+    ? createSupabaseCreditStrategyRepository(extractionRepository)
+    : createLocalCreditStrategyRepository();
+  const evidenceMapper = provider
+    ? async (profile) => provider.invoke({
+        prompt: buildCreditEvidencePrompt(profile),
+        schemaVersion: "credit-evidence-map.v1",
+        config: { ...(provider.config ?? {}), maxTokens: 1_500, timeoutMs: localProviderTimeoutMs() },
+      })
+    : undefined;
+  const queue = createCreditStrategyJobQueue({ repository, evidenceMapper });
+  void queue.resume().catch((error) => console.error("Unable to resume credit strategy jobs:", error));
+  return queue;
 }
 
 function createLocalExtractionJobs({ providers, reason }) {
@@ -196,6 +389,7 @@ function createLocalExtractionJobs({ providers, reason }) {
     queue,
     repository: null,
     providerNames: primaryProvider ? [`local-${primaryProvider.name}`] : ["local-rules-fallback"],
+    primaryProvider,
     async createJob(jobInput) {
       const job = queue.createJob(jobInput);
       const token = randomToken();
@@ -241,6 +435,47 @@ function extractionJobIdFromUrl(requestUrl, suffix = "") {
   return id || null;
 }
 
+function sustainabilityAnalysisIdFromUrl(requestUrl, suffix = "") {
+  const pathname = new URL(requestUrl, "http://localhost").pathname;
+  const prefix = "/api/sustainability-analyses/";
+  if (!pathname.startsWith(prefix) || (suffix && !pathname.endsWith(suffix))) return null;
+  const id = pathname.slice(prefix.length, suffix ? -suffix.length : undefined);
+  return id || null;
+}
+
+function creditStrategyAnalysisIdFromUrl(requestUrl, suffix = "") {
+  const pathname = new URL(requestUrl, "http://localhost").pathname;
+  const prefix = "/api/credit-strategy-analyses/";
+  if (!pathname.startsWith(prefix) || (suffix && !pathname.endsWith(suffix))) return null;
+  const id = pathname.slice(prefix.length, suffix ? -suffix.length : undefined);
+  return id || null;
+}
+
+function creditEvidenceFromSustainabilityProfile(profile) {
+  return {
+    sector: "semiconductors",
+    emissions: {
+      ...profile.emissions,
+      targetBoundaryTco2e: profile.emissions?.totalTco2e ?? null,
+    },
+    target: profile.target ?? {},
+    projects: (profile.internalInvestments ?? []).map((project) => ({
+      ...project,
+      lever: project.category,
+      requiredCapitalUsd: project.requiredCapitalUsd,
+      committedCapitalUsd: project.committedCapitalUsd ?? project.amountUsd,
+      deliveryYear: project.deliveryYear,
+      mrvReady: project.mrvReady ?? project.verified,
+      sourceCoverage: 0.5,
+    })),
+    currentPortfolio: {
+      disclosureStatus: profile.carbonCredits?.disclosureStatus ?? "not_disclosed",
+      credits: profile.carbonCredits?.credits ?? [],
+      citations: profile.carbonCredits?.citations ?? [],
+    },
+  };
+}
+
 async function readJsonBody(request) {
   const chunks = [];
   let totalBytes = 0;
@@ -275,6 +510,7 @@ async function serveStatic(request, response) {
     response.writeHead(200, {
       "Content-Type": mimeTypes[extname(filePath)] ?? "application/octet-stream",
       "Content-Length": fileStat.size,
+      ...(new Set([".html", ".js", ".css"]).has(extname(filePath)) ? { "Cache-Control": "no-cache" } : {}),
     });
 
     if (request.method === "HEAD") {
@@ -285,7 +521,7 @@ async function serveStatic(request, response) {
     createReadStream(filePath).pipe(response);
   } catch {
     const fallback = await readFile(join(rootDir, "index.html"));
-    response.writeHead(404, { "Content-Type": "text/html; charset=utf-8" });
+    response.writeHead(404, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-cache" });
     response.end(fallback);
   }
 }

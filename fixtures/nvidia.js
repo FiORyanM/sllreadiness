@@ -117,6 +117,22 @@ export const nvidiaFixture = {
         },
       ],
     },
+    sustainabilityProfile: {
+      sector: { key: "semiconductors", confidence: "High" },
+      emissions: { year: 2025, scope1Tco2e: null, scope2Tco2e: null, scope3Tco2e: null, totalTco2e: null, citations: [] },
+      target: null,
+      internalInvestments: [{
+        name: "Renewable electricity procurement",
+        category: "renewable_energy",
+        amountUsd: null,
+        expectedAbatementTco2e: null,
+        status: "completed",
+        verified: false,
+        expectedImpact: "Reduce Scope 2 market-based emissions.",
+        citations: [nvidiaCitations.energyInvestment],
+      }],
+      carbonCredits: { disclosureStatus: "not_disclosed", purchasedTco2e: null, retiredTco2e: null, contractedTco2e: null, mix: [], registry: "", methodology: "", verified: false, procurementType: "", claimMade: false, doubleCountingConcern: false, citations: [] },
+    },
     baseMarginNote:
       "150bps is a generic corporate placeholder. Replace with NVIDIA-specific financing assumptions for decision-useful economics.",
   },

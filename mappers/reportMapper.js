@@ -28,6 +28,7 @@ export function mapExtractionToReport(extraction) {
       })),
       gaps: extraction.analysis.gaps,
       sustainabilityInvestments: extraction.analysis.sustainabilityInvestments,
+      sustainabilityProfile: extraction.analysis.sustainabilityProfile,
       baseMarginNote: extraction.analysis.baseMarginNote,
       extractionSummary: {
         reportingYear,

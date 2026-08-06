@@ -115,6 +115,22 @@ export const aiibFixture = {
         },
       ],
     },
+    sustainabilityProfile: {
+      sector: { key: "development_finance", confidence: "High" },
+      emissions: { year: 2024, scope1Tco2e: null, scope2Tco2e: null, scope3Tco2e: null, totalTco2e: null, citations: [] },
+      target: null,
+      internalInvestments: [{
+        name: "Climate finance portfolio",
+        category: "sustainable_finance",
+        amountUsd: null,
+        expectedAbatementTco2e: null,
+        status: "underway",
+        verified: false,
+        expectedImpact: "Finance eligible mitigation, adaptation and climate-industry projects.",
+        citations: [aiibCitations.sustainableEnergy],
+      }],
+      carbonCredits: { disclosureStatus: "not_disclosed", purchasedTco2e: null, retiredTco2e: null, contractedTco2e: null, mix: [], registry: "", methodology: "", verified: false, procurementType: "", claimMade: false, doubleCountingConcern: false, citations: [] },
+    },
     baseMarginNote:
       "150bps is a generic corporate placeholder. AIIB's actual sovereign lending spreads are lower (AAA-rated MDB). Adjust the base margin parameter to reflect the actual deal terms for accurate figures.",
   },

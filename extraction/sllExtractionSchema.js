@@ -1,4 +1,4 @@
-export const sllExtractionSchemaVersion = "sll-readiness-extraction.v1";
+export const sllExtractionSchemaVersion = "sll-readiness-extraction.v2";
 
 export const sllpStandard = "Sustainability-Linked Loan Principles, 26 March 2025";
 
@@ -43,6 +43,80 @@ const sustainabilityInvestmentContract = {
   ],
 };
 
+const sustainabilityProfileContract = {
+  sector: {
+    key: "semiconductors | ict_technology | development_finance | market_only",
+    confidence: "High | Medium | Low",
+  },
+  emissions: {
+    year: "integer | null",
+    scope1Tco2e: "number | null",
+    scope2Tco2e: "number | null",
+    scope3Tco2e: "number | null",
+    totalTco2e: "number | null",
+    citations: [{ quote: "string", pages: ["integer PDF page number"] }],
+  },
+  target: {
+    baselineYear: "integer | null",
+    targetYear: "integer | null",
+    reductionPercent: "number | null",
+    boundary: "scope1_scope2 | scope1_scope2_scope3 | other",
+    citations: [{ quote: "string", pages: ["integer PDF page number"] }],
+  },
+  internalInvestments: [
+    {
+      name: "string",
+      category: "string",
+      amountUsd: "number | null",
+      requiredCapitalUsd: "number | null",
+      committedCapitalUsd: "number | null",
+      expectedAbatementTco2e: "number | null",
+      deliveryYear: "integer | null",
+      status: "planned | approved | underway | completed | not_disclosed",
+      verified: "boolean",
+      mrvReady: "boolean",
+      emissionsSource: "process gases | electricity | energy efficiency | scope 3 supply chain | low-carbon materials | other | not_disclosed",
+      expectedImpact: "string",
+      citations: [{ quote: "string", pages: ["integer PDF page number"] }],
+    },
+  ],
+  carbonCredits: {
+    disclosureStatus: "disclosed | confirmed_zero | not_disclosed",
+    purchasedTco2e: "number | null",
+    retiredTco2e: "number | null",
+    contractedTco2e: "number | null",
+    mix: [{ key: "credit taxonomy key", share: "percentage from 0 to 100" }],
+    credits: [{
+      name: "string",
+      volumeTco2e: "number | null",
+      type: "nature_reduction | nature_removal | durable_removal | methane_industrial | community_energy | other",
+      registry: "string",
+      methodology: "string",
+      vintage: "integer | null",
+      deliveryYear: "integer | null",
+      contractType: "spot | forward | offtake | project investment | not_disclosed",
+      ccpApproved: "boolean",
+      verified: "boolean",
+      additionalityEvidence: "boolean",
+      noDoubleCounting: "boolean",
+      ownershipConfirmed: "boolean",
+      replacementRemedy: "boolean",
+      retired: "boolean",
+      claimMade: "boolean",
+      claimBoundaryConfirmed: "boolean",
+      deliveryRiskPercent: "number | null",
+      citations: [{ quote: "string", pages: ["integer PDF page number"] }],
+    }],
+    registry: "string",
+    methodology: "string",
+    verified: "boolean",
+    procurementType: "spot | forward | offtake | project investment | not_disclosed",
+    claimMade: "boolean",
+    doubleCountingConcern: "boolean",
+    citations: [{ quote: "string", pages: ["integer PDF page number"] }],
+  },
+};
+
 export function buildSllExtractionPrompt({ text, metadata }) {
   return [
     "You are extracting evidence for an SLL readiness report.",
@@ -51,6 +125,7 @@ export function buildSllExtractionPrompt({ text, metadata }) {
     "Do not invent facts. If evidence is missing, use status \"Needs review\" and explain the missing evidence.",
     "For sustainabilityInvestments, include only investments, capex, funds, projects, procurement, offsets or carbon credit activity that are explicitly cited in the report. Do not convert general strategy language into an investment.",
     "Rate each sustainability investment on use-of-proceeds clarity, decarbonization link, quantified amount/impact, delivery status, verification readiness and carbon-credit pathway. Explain whether the investment is commercially useful for a carbon credit discussion.",
+    "Create sustainabilityProfile only from cited facts. Use null or not_disclosed when emissions, target boundaries, required or committed capital, delivery year, abatement, credit volume, registry, methodology, ownership, remedies or retirement are absent. Never interpret silence as confirmed zero.",
     "",
     "Required JSON shape:",
     JSON.stringify(sllExtractionJsonContract, null, 2),
@@ -140,6 +215,7 @@ export const sllExtractionJsonContract = {
       },
     },
     sustainabilityInvestments: sustainabilityInvestmentContract,
+    sustainabilityProfile: sustainabilityProfileContract,
     baseMarginNote: "string",
   },
   confidence: {
