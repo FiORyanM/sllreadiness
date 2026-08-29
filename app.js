@@ -1477,10 +1477,7 @@ async function handlePdfExport() {
       response = await fetch("/api/report-pdf", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: activeReport.company.label,
-          html: buildReportSnapshot(),
-        }),
+        body: JSON.stringify(buildReportExportPayload()),
         signal: controller.signal,
       });
     } finally {
@@ -1498,7 +1495,7 @@ async function handlePdfExport() {
     setPdfExportStatus("PDF downloaded.");
   } catch (error) {
     console.error(error);
-    setPdfExportStatus("Server export unavailable. Opening browser print...", "error");
+    setPdfExportStatus("PDF export unavailable. Opening browser print...", "error");
     window.setTimeout(() => window.print(), 0);
   } finally {
     button.disabled = false;
@@ -1506,40 +1503,40 @@ async function handlePdfExport() {
   }
 }
 
-function buildReportSnapshot() {
-  const clone = view.report.cloneNode(true);
-  clone.classList.remove("is-hidden");
-  clone.classList.add("report-export");
-  const baseMarginNote = clone.querySelector(".gap-panel .note");
-  const disclaimer = clone.querySelector(".safety-disclaimer");
-  if (baseMarginNote && disclaimer) {
-    baseMarginNote.classList.add("export-summary-note");
-    disclaimer.insertAdjacentElement("afterend", baseMarginNote);
-  }
-  clone.querySelectorAll(".export-actions, .investment-panel, button, dialog").forEach((element) => element.remove());
-  clone.querySelectorAll("details").forEach((element) => element.setAttribute("open", ""));
-
-  clone.querySelectorAll("input, select, textarea").forEach((control) => {
-    const value = control.type === "checkbox"
-      ? (control.checked ? "Yes" : "No")
-      : control.tagName === "SELECT"
-        ? control.selectedOptions[0]?.textContent ?? ""
-        : control.value;
-    const replacement = document.createElement("span");
-    replacement.className = "export-field-value";
-    replacement.textContent = value;
-    control.replaceWith(replacement);
-  });
-
-  clone.querySelectorAll("form").forEach((form) => {
-    const replacement = document.createElement("div");
-    replacement.className = form.className;
-    replacement.setAttribute("aria-label", form.getAttribute("aria-label") ?? "Report values");
-    replacement.append(...form.childNodes);
-    form.replaceWith(replacement);
-  });
-
-  return clone.outerHTML;
+function buildReportExportPayload() {
+  const inputs = readInputs();
+  const analysis = activeReport.analysis;
+  return {
+    version: "sll-readiness-report.v1",
+    company: {
+      label: activeReport.company.label,
+      subtitle: activeReport.company.subtitle,
+      generatedDate: activeReport.company.generatedDate,
+      footer: activeReport.company.footer,
+    },
+    verdict: {
+      title: activeReport.verdict.title,
+      copy: activeReport.verdict.copy,
+    },
+    deal: {
+      loanSizeM: inputs.loanSizeM,
+      tenor: inputs.tenor,
+      baseMargin: inputs.baseMargin,
+      ratchetBest: inputs.ratchetBest,
+      ratchetWorst: inputs.ratchetWorst,
+    },
+    analysis: {
+      readinessScore: analysis.readinessScore,
+      readinessBand: analysis.readinessBand,
+      assessmentState: analysis.assessmentState,
+      executionCost: analysis.executionCost,
+      baseMarginNote: analysis.baseMarginNote,
+      analysisScope: analysis.analysisScope,
+      components: analysis.components.map(({ name, score, status, citations }) => ({ name, score, status, citations })),
+      gaps: analysis.gaps.map(({ title, description, severity, citations }) => ({ title, description, severity, citations })),
+      kpis: analysis.kpis.map(({ name, evidence, status, citations }) => ({ name, evidence, status, citations })),
+    },
+  };
 }
 
 function setPdfExportStatus(message, tone = "neutral") {

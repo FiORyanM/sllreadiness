@@ -11,6 +11,6 @@
   },
   "dependencies": {
     "pdfjs-dist": "^4.10.38",
-    "playwright": "^1.62.1"
+    "pdfmake": "^0.2.23"
   }
 }

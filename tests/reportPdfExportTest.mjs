@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { once } from "node:events";
-import { mkdir, readFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
-import { chromium } from "playwright";
+import { aiibFixture } from "../fixtures/aiib.js";
 
 const port = 3099;
 const baseUrl = `http://127.0.0.1:${port}`;
@@ -22,34 +22,32 @@ server.stderr.on("data", (chunk) => {
   serverLog += chunk.toString();
 });
 
-let browser;
 try {
   await waitForServer();
-  browser = await chromium.launch({ headless: true });
-  const page = await browser.newPage({ acceptDownloads: true });
-  await page.goto(baseUrl, { waitUntil: "networkidle" });
-  await page.click("#demo-button");
-  await page.locator("#report-view:not(.is-hidden)").waitFor();
-
-  const [download] = await Promise.all([
-    page.waitForEvent("download", { timeout: 60_000 }),
-    page.click("#export-pdf-button"),
-  ]);
-
-  await mkdir(new URL("../output/pdf/", import.meta.url), { recursive: true });
-  await download.saveAs(outputPath);
-  const pdf = await readFile(outputPath);
-  assert.equal(pdf.subarray(0, 5).toString(), "%PDF-");
-  assert.ok(pdf.length > 20_000, `Expected a substantive PDF, received ${pdf.length} bytes.`);
-  assert.match(download.suggestedFilename(), /aiib.*sll-readiness-report\.pdf/i);
-
-  const invalidResponse = await page.request.post(`${baseUrl}/api/report-pdf`, {
-    data: { title: "Invalid", html: "<p>Not a report</p>" },
+  const response = await fetch(`${baseUrl}/api/report-pdf`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(reportPayload()),
   });
-  assert.equal(invalidResponse.status(), 400);
-  console.log(`PDF export integration test passed (${pdf.length.toLocaleString()} bytes).`);
+  assert.equal(response.status, 200, `Expected a PDF response, received HTTP ${response.status}.`);
+  assert.match(response.headers.get("content-type") ?? "", /^application\/pdf/);
+  assert.match(response.headers.get("content-disposition") ?? "", /aiib.*sll-readiness-report\.pdf/i);
+
+  const pdf = Buffer.from(await response.arrayBuffer());
+  await mkdir(new URL("../output/pdf/", import.meta.url), { recursive: true });
+  await writeFile(outputPath, pdf);
+  const savedPdf = await readFile(outputPath);
+  assert.equal(savedPdf.subarray(0, 5).toString(), "%PDF-");
+  assert.ok(savedPdf.length > 20_000, `Expected a substantive PDF, received ${savedPdf.length} bytes.`);
+
+  const invalidResponse = await fetch(`${baseUrl}/api/report-pdf`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ version: "unsupported" }),
+  });
+  assert.equal(invalidResponse.status, 400);
+  console.log(`PDF export integration test passed (${savedPdf.length.toLocaleString()} bytes).`);
 } finally {
-  await browser?.close();
   if (server.exitCode === null) {
     server.kill("SIGTERM");
     await Promise.race([
@@ -57,6 +55,25 @@ try {
       new Promise((resolve) => setTimeout(resolve, 6_000)),
     ]);
   }
+}
+
+function reportPayload() {
+  return {
+    version: "sll-readiness-report.v1",
+    company: aiibFixture.company,
+    verdict: aiibFixture.verdict,
+    deal: aiibFixture.dealDefaults,
+    analysis: {
+      readinessScore: 84,
+      readinessBand: "Strong",
+      assessmentState: "assessed",
+      executionCost: { best: 100_000, worst: 250_000 },
+      baseMarginNote: aiibFixture.analysis.baseMarginNote,
+      components: Object.values(aiibFixture.modelInputs.componentsByKey),
+      gaps: aiibFixture.analysis.gaps,
+      kpis: aiibFixture.analysis.kpis,
+    },
+  };
 }
 
 async function waitForServer() {
