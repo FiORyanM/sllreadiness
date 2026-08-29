@@ -683,11 +683,6 @@ select {
   color: white;
 }
 
-.investment-demo-button {
-  border-color: var(--gold);
-  background: var(--gold);
-}
-
 .secondary-button {
   border: 1px solid var(--line);
   background: white;

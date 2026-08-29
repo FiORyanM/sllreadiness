@@ -1604,11 +1604,6 @@ function init() {
     showReport(tsmcFixture, "TSMC 2024 demo loaded.");
   });
 
-  document.getElementById("tsmc-investment-demo-button").addEventListener("click", () => {
-    history.pushState("", document.title, sustainabilityInvestmentDemoHash);
-    showCreditStrategyView({ precomputedDemo: true, returnView: "start" });
-  });
-
   document.getElementById("open-credit-strategy-button").addEventListener("click", () => {
     history.pushState("", document.title, creditStrategyHash);
     showCreditStrategyView({ returnView: "report" });
