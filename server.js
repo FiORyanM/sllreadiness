@@ -4,6 +4,7 @@ import { readFile, stat } from "node:fs/promises";
 import { createServer } from "node:http";
 import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
+import { chromium } from "playwright";
 import { configuredAiProviders } from "./extraction/aiProviderPool.js";
 import { buildCreditEvidencePrompt, createCreditStrategyJobQueue, createLocalCreditStrategyRepository } from "./extraction/creditStrategyJobQueue.js";
 import { createExtractionJobQueue } from "./extraction/extractionJobQueue.js";
@@ -17,9 +18,16 @@ loadDotEnv();
 const port = Number(process.env.PORT ?? 3002);
 const host = normalizeHost(process.env.HOST ?? (process.env.PORT ? "0.0.0.0" : "127.0.0.1"));
 const maxJsonBytes = 2 * 1024 * 1024;
+const maxReportHtmlChars = 1_500_000;
+const maxConcurrentPdfExports = 2;
 const extractionJobs = createPersistentExtractionJobs();
 const sustainabilityJobs = createSustainabilityJobs(extractionJobs.repository);
 const creditStrategyJobs = createCreditStrategyJobs(extractionJobs.repository, extractionJobs.primaryProvider);
+const reportExportTemplate = readFileSync(join(rootDir, "report-export.html"), "utf8");
+const reportStyles = readFileSync(join(rootDir, "styles.css"), "utf8");
+const reportExportStyles = readFileSync(join(rootDir, "report-export.css"), "utf8");
+let pdfBrowserPromise = null;
+let activePdfExports = 0;
 
 const mimeTypes = {
   ".html": "text/html; charset=utf-8",
@@ -37,6 +45,11 @@ const server = createServer(async (request, response) => {
   try {
     if (request.method === "GET" && request.url === "/health") {
       sendJson(response, 200, { ok: true, service: "sll-readiness-tool", providers: extractionJobs.providerNames ?? [] });
+      return;
+    }
+
+    if (request.method === "POST" && request.url === "/api/report-pdf") {
+      await handleCreateReportPdf(request, response);
       return;
     }
 
@@ -115,6 +128,147 @@ const server = createServer(async (request, response) => {
 server.listen(port, host, () => {
   console.log(`SLL Readiness Tool running at http://${host}:${port}`);
 });
+
+process.once("SIGTERM", () => void shutdownServer());
+process.once("SIGINT", () => void shutdownServer());
+
+async function shutdownServer() {
+  const browserPromise = pdfBrowserPromise;
+  pdfBrowserPromise = null;
+  await browserPromise?.then((browser) => browser.close()).catch(() => {});
+  server.close(() => process.exit(0));
+  setTimeout(() => process.exit(0), 5_000).unref();
+}
+
+async function handleCreateReportPdf(request, response) {
+  if (activePdfExports >= maxConcurrentPdfExports) {
+    sendJson(response, 429, { ok: false, message: "PDF export is busy. Try again in a moment." });
+    return;
+  }
+
+  const body = await readJsonBody(request);
+  const reportHtml = String(body.html ?? "").trim();
+  const title = cleanReportTitle(body.title);
+
+  if (!reportHtml || reportHtml.length > maxReportHtmlChars) {
+    sendJson(response, 400, { ok: false, message: "The report snapshot is missing or too large to export." });
+    return;
+  }
+
+  const sanitizedReportHtml = sanitizeReportHtml(reportHtml);
+  if (!/class=(?:"[^"]*\breport-page\b[^"]*"|'[^']*\breport-page\b[^']*')/i.test(sanitizedReportHtml)) {
+    sendJson(response, 400, { ok: false, message: "The submitted content is not a report snapshot." });
+    return;
+  }
+
+  activePdfExports += 1;
+  let context;
+
+  try {
+    const browser = await getPdfBrowser();
+    context = await browser.newContext({ javaScriptEnabled: false });
+    const page = await context.newPage();
+    await page.route("**/*", (route) => route.abort());
+    await page.setContent(buildReportExportDocument({ title, reportHtml: sanitizedReportHtml }), {
+      waitUntil: "load",
+      timeout: 20_000,
+    });
+    await page.emulateMedia({ media: "print" });
+
+    const pdf = await page.pdf({
+      format: "A4",
+      landscape: true,
+      printBackground: true,
+      preferCSSPageSize: true,
+      displayHeaderFooter: true,
+      headerTemplate: `<div style="box-sizing:border-box;width:100%;padding:0 10mm;color:#667481;font-family:Arial,sans-serif;font-size:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(title)}</div>`,
+      footerTemplate: '<div style="box-sizing:border-box;display:flex;width:100%;padding:0 10mm;color:#667481;font-family:Arial,sans-serif;font-size:8px;"><span style="flex:1;">SLL Readiness Report</span><span>Page <span class="pageNumber"></span> of <span class="totalPages"></span></span></div>',
+      timeout: 45_000,
+    });
+
+    const filename = `${safePdfFilename(title)}-sll-readiness-report.pdf`;
+    response.writeHead(200, {
+      "Content-Type": "application/pdf",
+      "Content-Length": pdf.length,
+      "Content-Disposition": contentDisposition(filename),
+      "Cache-Control": "no-store",
+    });
+    response.end(pdf);
+  } catch (error) {
+    console.error("PDF export failed:", error);
+    sendJson(response, 503, {
+      ok: false,
+      code: "PDF_EXPORT_UNAVAILABLE",
+      message: "Server-side PDF export is temporarily unavailable. Use browser print instead.",
+    });
+  } finally {
+    activePdfExports -= 1;
+    await context?.close().catch(() => {});
+  }
+}
+
+function getPdfBrowser() {
+  if (!pdfBrowserPromise) {
+    pdfBrowserPromise = chromium
+      .launch({
+        headless: true,
+        executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined,
+        args: ["--disable-dev-shm-usage"],
+      })
+      .catch((error) => {
+        pdfBrowserPromise = null;
+        throw error;
+      });
+  }
+  return pdfBrowserPromise;
+}
+
+function buildReportExportDocument({ title, reportHtml }) {
+  return reportExportTemplate
+    .replace("{{REPORT_TITLE}}", escapeHtml(title))
+    .replace("{{REPORT_STYLES}}", reportStyles)
+    .replace("{{EXPORT_STYLES}}", reportExportStyles)
+    .replace("{{REPORT_CONTENT}}", reportHtml);
+}
+
+function sanitizeReportHtml(value) {
+  return value
+    .replace(/<(script|style|iframe|object|embed)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, "")
+    .replace(/<(script|style|iframe|object|embed|link|meta|base)\b[^>]*\/?\s*>/gi, "")
+    .replace(/\s(?:on[a-z]+|src|srcset|formaction)\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, "")
+    .replace(/javascript\s*:/gi, "");
+}
+
+function cleanReportTitle(value) {
+  return String(value ?? "Company")
+    .replace(/[\u0000-\u001f\u007f]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 120) || "Company";
+}
+
+function safePdfFilename(value) {
+  return value
+    .normalize("NFKD")
+    .replace(/[^a-zA-Z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80)
+    .toLowerCase() || "company";
+}
+
+function contentDisposition(filename) {
+  const asciiName = filename.replace(/[^a-zA-Z0-9._-]/g, "-");
+  return `attachment; filename="${asciiName}"; filename*=UTF-8''${encodeURIComponent(filename)}`;
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
 
 async function handleCreateExtractionJob(request, response) {
   const body = await readJsonBody(request);

@@ -1462,6 +1462,121 @@ function formatUsdCompact(value) {
   return formatUsd(amount);
 }
 
+async function handlePdfExport() {
+  const button = document.getElementById("export-pdf-button");
+  const originalLabel = button.textContent;
+  button.disabled = true;
+  button.textContent = "Exporting...";
+  setPdfExportStatus("Preparing report...");
+
+  try {
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 60_000);
+    let response;
+    try {
+      response = await fetch("/api/report-pdf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: activeReport.company.label,
+          html: buildReportSnapshot(),
+        }),
+        signal: controller.signal,
+      });
+    } finally {
+      window.clearTimeout(timeout);
+    }
+
+    if (!response.ok) {
+      const payload = await safeReadJson(response);
+      throw new Error(payload.message || "Unable to export the PDF.");
+    }
+
+    const blob = await response.blob();
+    if (blob.type !== "application/pdf" || blob.size === 0) throw new Error("The PDF export was empty.");
+    downloadBlob(blob, pdfFilenameFromResponse(response));
+    setPdfExportStatus("PDF downloaded.");
+  } catch (error) {
+    console.error(error);
+    setPdfExportStatus("Server export unavailable. Opening browser print...", "error");
+    window.setTimeout(() => window.print(), 0);
+  } finally {
+    button.disabled = false;
+    button.textContent = originalLabel;
+  }
+}
+
+function buildReportSnapshot() {
+  const clone = view.report.cloneNode(true);
+  clone.classList.remove("is-hidden");
+  clone.classList.add("report-export");
+  const baseMarginNote = clone.querySelector(".gap-panel .note");
+  const disclaimer = clone.querySelector(".safety-disclaimer");
+  if (baseMarginNote && disclaimer) {
+    baseMarginNote.classList.add("export-summary-note");
+    disclaimer.insertAdjacentElement("afterend", baseMarginNote);
+  }
+  clone.querySelectorAll(".export-actions, .investment-panel, button, dialog").forEach((element) => element.remove());
+  clone.querySelectorAll("details").forEach((element) => element.setAttribute("open", ""));
+
+  clone.querySelectorAll("input, select, textarea").forEach((control) => {
+    const value = control.type === "checkbox"
+      ? (control.checked ? "Yes" : "No")
+      : control.tagName === "SELECT"
+        ? control.selectedOptions[0]?.textContent ?? ""
+        : control.value;
+    const replacement = document.createElement("span");
+    replacement.className = "export-field-value";
+    replacement.textContent = value;
+    control.replaceWith(replacement);
+  });
+
+  clone.querySelectorAll("form").forEach((form) => {
+    const replacement = document.createElement("div");
+    replacement.className = form.className;
+    replacement.setAttribute("aria-label", form.getAttribute("aria-label") ?? "Report values");
+    replacement.append(...form.childNodes);
+    form.replaceWith(replacement);
+  });
+
+  return clone.outerHTML;
+}
+
+function setPdfExportStatus(message, tone = "neutral") {
+  const status = document.getElementById("pdf-export-status");
+  status.textContent = message;
+  status.dataset.tone = tone;
+}
+
+function pdfFilenameFromResponse(response) {
+  const disposition = response.headers.get("Content-Disposition") ?? "";
+  const encodedMatch = disposition.match(/filename\*=UTF-8''([^;]+)/i);
+  if (encodedMatch) {
+    try {
+      return decodeURIComponent(encodedMatch[1]);
+    } catch {
+      // Use the local fallback below when the response filename is malformed.
+    }
+  }
+  const companySlug = activeReport.company.label
+    .normalize("NFKD")
+    .replace(/[^a-zA-Z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .toLowerCase() || "company";
+  return `${companySlug}-sll-readiness-report.pdf`;
+}
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1_000);
+}
+
 function titleCase(value) {
   return String(value).replace(/([A-Z])/g, " $1").replace(/^./, (character) => character.toUpperCase());
 }
@@ -1474,9 +1589,8 @@ function init() {
     field.addEventListener("input", updateCalculations);
   });
 
-  document.getElementById("print-button").addEventListener("click", () => {
-    window.print();
-  });
+  document.getElementById("export-pdf-button").addEventListener("click", handlePdfExport);
+  document.getElementById("print-button").addEventListener("click", () => window.print());
 
   document.getElementById("demo-button").addEventListener("click", () => {
     showReport(aiibFixture, "AIIB demo loaded.");

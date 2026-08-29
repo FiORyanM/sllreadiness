@@ -6,9 +6,11 @@
   "scripts": {
     "dev": "node server.js",
     "start": "node server.js",
-    "test": "node tests/modelSmokeTest.mjs && node tests/persistentAiJobQueueTest.mjs && node tests/sustainabilityAnalysisTest.mjs && node tests/creditStrategyTest.mjs && node tests/tsmcCreditStrategyDemoTest.mjs"
+    "test": "node tests/modelSmokeTest.mjs && node tests/persistentAiJobQueueTest.mjs && node tests/sustainabilityAnalysisTest.mjs && node tests/creditStrategyTest.mjs && node tests/tsmcCreditStrategyDemoTest.mjs",
+    "test:pdf-export": "node tests/reportPdfExportTest.mjs"
   },
   "dependencies": {
-    "pdfjs-dist": "^4.10.38"
+    "pdfjs-dist": "^4.10.38",
+    "playwright": "^1.62.1"
   }
 }

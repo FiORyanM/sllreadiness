@@ -45,6 +45,12 @@ HOST=0.0.0.0
 
 Railway provides `PORT` automatically. If Railway already injects a host value, leave `HOST` unset or set it to `0.0.0.0`; do not set it to `[::]`.
 
+Set the Railway build command to install the headless Chromium binary used for server-side PDF export:
+
+```bash
+npm install && npx playwright install --only-shell chromium
+```
+
 ## Render Option
 
 1. Push this branch to GitHub.
@@ -59,7 +65,7 @@ Render provides `PORT` automatically.
 If not using the blueprint:
 
 - Runtime: Node
-- Build command: `npm install`
+- Build command: `npm install && npx playwright install --only-shell chromium`
 - Start command: `npm start`
 - Environment variables: same as above
 
@@ -75,6 +81,18 @@ Open:
 http://127.0.0.1:3003
 ```
 
+Install Chromium once before testing PDF export locally:
+
+```bash
+npx playwright install chromium
+```
+
+If a Linux host reports missing browser system libraries, install Chromium together with its dependencies in the host image or build environment:
+
+```bash
+npx playwright install --with-deps --only-shell chromium
+```
+
 ## Demo Modes
 
 The built-in demo buttons do not call the AI provider:
@@ -84,6 +102,8 @@ The built-in demo buttons do not call the AI provider:
 - TSMC demo
 
 Uploaded PDF analysis creates a Supabase-backed AI-only job at `POST /api/extraction-jobs`. The response contains a one-time job token, required as `X-Extraction-Job-Token` for status and retry requests. Each section uses NVIDIA, Gemini, then Groq, with provider-specific persisted rate limits. A provider timeout or quota error switches provider; no browser or rules fallback is used. Completed reports are cached for seven days. If all configured providers are unavailable, the job enters `capacity_exhausted`; `POST /api/extraction-jobs/:id/retry` continues only incomplete sections.
+
+Report export uses `POST /api/report-pdf` and Playwright Chromium to generate a searchable A4 landscape PDF from the currently rendered report. If Chromium is unavailable, the frontend automatically opens the browser print dialog as a fallback.
 
 ## Notes
 

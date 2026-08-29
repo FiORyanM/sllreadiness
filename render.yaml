@@ -3,7 +3,7 @@ services:
     name: sll-readiness-tool
     runtime: node
     plan: free
-    buildCommand: npm install
+    buildCommand: npm install && npx playwright install --only-shell chromium
     startCommand: npm start
     envVars:
       - key: NODE_ENV

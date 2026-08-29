@@ -148,7 +148,11 @@
           <article class="section-panel calculator-panel">
             <div class="section-heading with-action">
               <h2>Cost vs Benefit - Regular Loan vs SLL</h2>
-              <button class="print-button" id="print-button" type="button">Print / Save PDF</button>
+              <div class="export-actions">
+                <button class="print-button" id="export-pdf-button" type="button">Export PDF</button>
+                <button class="print-button secondary" id="print-button" type="button">Print</button>
+                <span class="export-status" id="pdf-export-status" role="status" aria-live="polite"></span>
+              </div>
             </div>
 
             <form class="assumption-grid" aria-label="Deal assumptions">

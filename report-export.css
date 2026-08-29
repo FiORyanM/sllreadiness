@@ -1,0 +1,95 @@
+@page {
+  size: A4 landscape;
+  margin: 14mm 10mm 15mm;
+}
+
+html,
+.pdf-export-body {
+  min-height: auto;
+  background: #fff;
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+.pdf-export-body {
+  margin: 0;
+}
+
+.pdf-export-shell {
+  width: 100%;
+}
+
+.pdf-export-shell .report-page {
+  width: 100%;
+  min-height: auto;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  box-shadow: none;
+}
+
+.pdf-export-shell .export-actions,
+.pdf-export-shell button,
+.pdf-export-shell .credit-strategy-teaser,
+.pdf-export-shell .sustainability-generate,
+.pdf-export-shell .sustainability-job-row,
+.pdf-export-shell .sustainability-controls {
+  display: none !important;
+}
+
+.pdf-export-shell .export-field-value {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 34px;
+  padding: 6px 8px;
+  border: 1px solid #cbd5db;
+  border-radius: 4px;
+  background: #fff;
+  color: var(--ink);
+  font-weight: 750;
+}
+
+.pdf-export-shell .export-summary-note {
+  margin-top: 8px;
+}
+
+.pdf-export-shell .report-header,
+.pdf-export-shell .hero-grid,
+.pdf-export-shell .safety-disclaimer,
+.pdf-export-shell .analysis-scope,
+.pdf-export-shell .section-panel,
+.pdf-export-shell .metric-panel,
+.pdf-export-shell .verdict-panel,
+.pdf-export-shell .loan-column,
+.pdf-export-shell .scenario-card,
+.pdf-export-shell .component-row,
+.pdf-export-shell .kpi-item,
+.pdf-export-shell .gap-item,
+.pdf-export-shell .investment-item,
+.pdf-export-shell .sustainability-chart-section,
+.pdf-export-shell .recommendation-table-wrap,
+.pdf-export-shell .report-footer {
+  break-inside: avoid;
+}
+
+.pdf-export-shell a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.pdf-export-shell details {
+  display: block;
+}
+
+.pdf-export-shell details > summary {
+  list-style: none;
+}
+
+.pdf-export-shell details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.pdf-export-shell .report-footer {
+  margin-bottom: 0;
+}

@@ -970,6 +970,40 @@ select {
   background: #0f312d;
 }
 
+.export-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 7px;
+}
+
+.print-button.secondary {
+  border-color: var(--line);
+  background: white;
+  color: var(--deep);
+}
+
+.print-button.secondary:hover {
+  border-color: var(--deep);
+  background: #f4f7f6;
+}
+
+.print-button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.export-status {
+  max-width: 190px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.25;
+}
+
+.export-status[data-tone="error"] {
+  color: var(--red);
+}
+
 .component-list {
   display: grid;
   gap: 11px;
@@ -2046,6 +2080,7 @@ dl .total dd {
     box-shadow: none;
   }
 
+  .export-actions,
   .print-button {
     display: none;
   }
