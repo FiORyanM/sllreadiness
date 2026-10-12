@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Carbon Credit Portfolio — Partner Explainer</title>
+<style>
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;background:#f1f5f9;color:#0f172a;line-height:1.7;font-size:16px;-webkit-font-smoothing:antialiased}
+header{background:linear-gradient(135deg,#0f172a,#0c4a6e);color:#fff;padding:44px 20px 34px}
+.wrap{max-width:880px;margin:0 auto}
+h1{margin:0 0 10px;font-size:32px;line-height:1.2;letter-spacing:-.02em}header p{opacity:.93;max-width:68ch;margin:8px 0;font-size:16px}
+.eyebrow{display:inline-block;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#7dd3fc;margin-bottom:6px}
+main{padding:24px 20px 40px}
+.card{background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:28px;margin-bottom:20px;box-shadow:0 1px 2px rgba(15,23,42,.05)}
+.card>h2{margin:0 0 4px;font-size:22px;line-height:1.3;letter-spacing:-.01em}
+.sub{color:#475569;font-size:14px;margin:0 0 14px;max-width:68ch}
+p,li{max-width:68ch}
+p{margin:10px 0}
+.lede{font-size:17px;color:#1e293b}
+.stepnum{display:inline-flex;align-items:center;justify-content:center;min-width:34px;height:34px;border-radius:50%;background:#0f172a;color:#fff;text-align:center;line-height:1;font-weight:800;margin-right:10px;font-size:15px}
+h3{font-size:15px;margin:20px 0 8px;letter-spacing:.01em}
+ul.tight{margin:8px 0;padding-left:20px}ul.tight li{margin:6px 0}
+.mut{color:#64748b;font-size:13px}.takeaway{border-left:3px solid #0ea5e9;padding:2px 0 2px 12px;color:#334155;font-size:14px;margin:10px 0}
+.box{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px 16px;margin:12px 0}
+.ok{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:14px 16px;margin:12px 0}
+.warn{background:#fefce8;border:1px solid #fde68a;border-radius:10px;padding:14px 16px;margin:12px 0}
+.def{background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:14px 16px;margin:12px 0;font-size:14px}
+.callout-title{display:block;font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;opacity:.75}
+.gloss{display:grid;grid-template-columns:180px 1fr;gap:8px 14px;margin:10px 0;font-size:14px}
+.gloss dt{font-weight:800}.gloss dd{margin:0;color:#334155}
+@media(max-width:640px){.gloss{grid-template-columns:1fr}}
+.flow{display:flex;align-items:stretch;gap:8px;margin:16px 0}
+.badge{flex:1;text-align:center;background:#f8fafc;border:2px solid #e2e8f0;border-radius:12px;padding:12px 8px;font-size:13px}
+.badge b{display:block;margin-bottom:2px;font-size:14px}.badge.done{border-color:#16a34a;background:#f0fdf4}
+.arrow{align-self:center;font-size:20px;color:#94a3b8;flex:0 0 auto}
+@media(max-width:760px){.flow{flex-direction:column}.arrow{transform:rotate(90deg)}}
+.table-wrap{overflow-x:auto;border:1px solid #e2e8f0;border-radius:12px;margin:12px 0}
+table{width:100%;border-collapse:collapse;font-size:14px;min-width:560px}thead th{background:#f8fafc;font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:#475569}th,td{padding:10px 12px;border-bottom:1px solid #e2e8f0;text-align:left;vertical-align:top}
+tbody tr:last-child td{border-bottom:none}tbody tr:nth-child(even){background:#fafcff}
+.chart{position:relative;height:300px;margin:14px 0}.chart canvas{position:absolute;inset:0;width:100%!important;height:100%!important}
+.grid{display:grid;gap:16px}.g2{grid-template-columns:1fr 1fr}@media(max-width:860px){.g2{grid-template-columns:1fr}}
+.toc{background:#0f172a;color:#e2e8f0;border-radius:14px;padding:18px 20px;margin-bottom:20px;font-size:14px}
+.toc a{color:#7dd3fc;text-decoration:none}.toc a:hover{text-decoration:underline}.toc ol{margin:8px 0 0;padding-left:20px}.toc li{margin:4px 0}
+details{border:1px solid #e2e8f0;border-radius:10px;padding:10px 14px;margin:10px 0;background:#fcfdff}
+summary{cursor:pointer;font-weight:700;font-size:14px}
+details.srcs{background:#f8fafc;font-size:13px}details.srcs summary{font-size:13px;color:#0369a1}
+details.srcs ul{margin:8px 0;padding-left:18px}details.srcs li{margin:4px 0;max-width:68ch}
+cite.num{font-style:normal;font-size:11px;font-weight:800;color:#0369a1;background:#e0f2fe;border-radius:6px;padding:0 5px;margin-left:4px;white-space:nowrap}
+cite.num a{color:inherit;text-decoration:none}
+.bib{font-size:13px}.bib ol{padding-left:20px}.bib li{margin:6px 0;max-width:72ch}.bib a{word-break:break-all}
+.tiers{display:grid;gap:12px;margin:12px 0}
+.tier{background:#fff;border:1px solid #dbeafe;border-radius:12px;padding:14px 16px}
+.tier-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.tier-name{font-weight:800;font-size:15px}
+.tier-tag{font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;background:#0f172a;color:#fff;border-radius:99px;padding:2px 10px}
+.tier-tag.green{background:#16a34a}.tier-tag.blue{background:#0284c7}
+.mixbar{display:flex;height:12px;border-radius:99px;overflow:hidden;margin:8px 0}
+.mixbar i{display:block;height:100%}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+.chip{font-size:12px;font-weight:700;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:99px;padding:2px 10px;color:#334155}
+.pick{font-size:14px;margin:6px 0 0}.pick b{color:#0f172a}
+footer{padding:20px;color:#64748b;font-size:12px}
+.term{font-weight:700}
+:focus-visible{outline:3px solid #0ea5e9;outline-offset:2px}
+@media print{.toc{display:none}body{background:#fff}.card{box-shadow:none;break-inside:avoid}}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+<header><div class="wrap">
+<span class="eyebrow" style="color:#7dd3fc">Partner explainer · ~10 min · Sara's story start to finish · V1 = save cost</span>
+<h1>Carbon credit portfolio</h1>
+<p class="lede"><b>Follow Sara</b> — 60-person logistics firm in Doha, €10k to cover ~800t of 2025 deliveries. She fears overpaying in a December panic and being accused of greenwash. This doc answers her five decisions in order.</p>
+<p class="mut" style="color:#cbd5e1">A carbon credit = 1 tonne of CO₂ reduced or removed elsewhere, issued with a serial number in a registry (Verra, Gold Standard, Global Carbon Council). Throughout: <b>holding</b> (transferable, re-sellable) vs <b>retirement</b> (permanently cancelled in Sara's company name — the only point a climate claim is valid).</p>
+</div></header>
+<main class="wrap">
+
+<nav class="toc" aria-label="Contents"><b>Contents — Sara's chapters</b><ol>
+<li><a href="#ch0">Ch.0 Prologue — Sara's problem</a></li>
+<li><a href="#s1">Ch.1 Mandate</a> · <a href="#s2">Ch.2 The mix she approves</a></li>
+<li><a href="#s3">Ch.3 Holding + seeing value</a> · <a href="#s4">Ch.4 Buying cheaper</a></li>
+<li><a href="#s5">Ch.5 Closing with proof</a> · <a href="#commercials">Commercials</a></li>
+<li><a href="#app">Appendix A Mechanics</a> · <a href="#failures">Appendix B Failures</a> · <a href="#save">Appendix C Save vs trade</a> · <a href="#refs">Sources</a></li>
+</ol></nav>
+
+<div class="card" id="ch0">
+<span class="eyebrow">Chapter 0 · Prologue</span><h2>Sara's problem</h2>
+<p class="sub">December is coming. She must cover leftovers she cannot cut — trucks, warehouse power, two Gulf flights.</p>
+<ul class="tight">
+<li><b>Stakes:</b> buy too late and she overpays; buy the wrong type and auditors reject it; claim it wrongly in the EU and she is fined.</li>
+<li><b>Question for the rest of this doc:</b> how does she buy once, buy well, and prove it?</li>
+</ul>
+</div>
+
+<div class="card" id="why">
+<span class="eyebrow">Context for Sara's fear</span><h2>Why this exists</h2>
+<p class="sub">Three frictions behind her fear. She is not alone.</p>
+<div class="table-wrap"><table><thead><tr><th>Friction</th><th>Evidence</th></tr></thead><tbody>
+<tr><td><b>Price volatility.</b> Same tonne swings $3–$30 by type; EU allowances €60–€105 in 2 years.</td><td>Ecosystem Marketplace $6.34 avg 2024 <cite class="num"><a href="#ref-em25">[1]</a></cite>; TradingEconomics EU peak €105.73 Feb 2023 <cite class="num"><a href="#ref-te">[2]</a></cite>; EU Commission €80 in 2022–23, €65 in 2024, €60–80 in 2025 <cite class="num"><a href="#ref-ec">[3]</a></cite>.</td></tr>
+<tr id="quality-dispersion"><td><b>Quality dispersion.</b> 100x spread for the same “1 tonne” label; 90% of intermediaries hide fees.</td><td>Carbonmark $0.10–$650 across 91 projects <cite class="num"><a href="#ref-cm">[4]</a></cite>; Carbon Market Watch / AlliedOffsets 90% non-disclosure, 15.5% avg disclosed fee <cite class="num"><a href="#ref-cmw">[5]</a></cite>.</td></tr>
+<tr><td colspan="2" style="background:#fcfdff"><details style="margin:0"><summary>Quality dispersion — what this means (expand)</summary>
+<p>Same name — “1 tonne” — very different contents, so very different prices:</p>
+<ul class="tight">
+<li><b>~$2 wind power:</b> the plant would likely be built anyway (low additionality), so the claim feels weak.</li>
+<li><b>~$6 old forest protection (REDD):</b> fell 23% in price after 2023 over-crediting findings; volumes halved.</li>
+<li><b>~$8 metered stoves with CCP stamp:</b> metered fuel savings, independently checked — costs more because it can be proved.</li>
+<li><b>~$12–16 new trees (ARR) / forest management:</b> removals with a story, but trees take years to grow.</li>
+<li><b>~$110 biochar / $300+ direct air capture:</b> locked away 1,000+ years — hardest, most expensive.</li>
+</ul>
+<p>Same unit, different provability, lock duration, year made (vintage), and rating (BeZero A vs C) — hence Carbonmark's $0.10–$650 range.</p>
+<p><b>Hidden fees:</b> a project may receive $5 while a broker resells the same tonne at $15 plus a 15.5% fee charged on the $15 — the buyer pays ~$17.30 for $5 of climate action. AlliedOffsets found ~250 projects resold at 3x or more. 90% of intermediaries disclose nothing, so a “cheap” $5 offer can hide a 400% margin. That is why every tonne in this product is split as project + $0.02 registry + $0.05 market + our disclosed 8–12%.</p>
+</details></td></tr>
+<tr id="claim-risk"><td><b>Claim risk.</b> Product-level “carbon neutral” via offsets is banned in the EU; company claims require separated disclosure + third-party proof.</td><td>Empowering Consumers Dir 2024/825 <cite class="num"><a href="#ref-ecd">[6]</a></cite>; Green Claims proposal + Parliament/Council texts <cite class="num"><a href="#ref-gc">[7]</a></cite>; VCMI Claims Code v3 <cite class="num"><a href="#ref-vcmi">[8]</a></cite>; CSRD ESRS E1-7 <cite class="num"><a href="#ref-esrs">[9]</a></cite>.</td></tr>
+<tr><td colspan="2" style="background:#fcfdff"><details style="margin:0"><summary>Claim risk — what this means (expand)</summary>
+<p><b>Product level — banned.</b> A chocolate bar labeled “carbon neutral chocolate” because offsets were bought elsewhere is always banned: shoppers read it as “this bar itself has no footprint,” which misleads, especially given over-estimation and double-counting risks in some credits.</p>
+<p><b>Company level — allowed only if split open + proved by a third party:</b></p>
+<ul class="tight">
+<li>Report own gross emissions and own cuts separately — never net credits against them.</li>
+<li>Disclose offsets separately: tonnes retired vs contracted-future, share of residuals, reduction vs removal, standard, registry, EU share, and Article 6 corresponding-adjustment share.</li>
+<li>Meet tier logic (e.g. Silver 10–&lt;50%, Gold 50–&lt;100%, Platinum ≥100%, rising yearly) without counting credits as internal cuts.</li>
+<li>Prove each tonne: registry link with serial numbers, PDF certificate, plus independent verification — not self-declared.</li>
+</ul>
+<p>Rule of thumb: products may not claim neutrality via offsets; companies may contribute via offsets only with two open columns — “what we cut” vs “what we bought” — every tonne traceable to a public retirement.</p>
+</details></td></tr>
+</tbody></table></div>
+<details class="srcs"><summary>Sources — why this exists</summary><ul>
+<li>[1] Ecosystem Marketplace SOVCM 2025: $535M value, 84Mt volume, $6.34 avg, 182Mt retired.</li>
+<li>[2] TradingEconomics EU Carbon Permits history; Sandbag Carbon Price Viewer (EEX auction settlement).</li>
+<li>[3] EU Commission ETS trends note; KraneShares Q2 2026 (CCA $32.96, RGGI $43.84, UKA £56.66).</li>
+<li>[4] Carbonmark buy page Aug 2026: $0.10–$650, renewables &lt;$3, forestry $1–24, durable $110–650, fractional from 1kg.</li>
+<li>[5] Carbon Market Watch intermediaries brief (AlliedOffsets): 90% hide, 15.5% avg of disclosers, 3x resales on ~250 projects.</li>
+<li>[6–9] EUR-Lex Green Claims docs, Council ST-11312/11554, VCMI Code + MRA, EFRAG ESRS E1 DR E1-7.</li>
+</ul></details>
+</div>
+
+<div class="card" id="flow">
+<span class="eyebrow">Map</span><h2>Sara's five decisions</h2>
+<p class="sub">Each chapter below is one decision. Detail follows in order.</p>
+<div class="flow">
+<div class="badge"><b>1. Mandate</b><span class="mut">Sara sets budget + likes</span></div><div class="arrow">→</div>
+<div class="badge"><b>2. Mix</b><span class="mut">Sara approves a set menu</span></div><div class="arrow">→</div>
+<div class="badge"><b>3. Hold</b><span class="mut">Sara watches like a bank app</span></div><div class="arrow">→</div>
+<div class="badge"><b>4. Buy smart</b><span class="mut">Sara's year: dip, monthly, lock</span></div><div class="arrow">→</div>
+<div class="badge done"><b>5. Close</b><span class="mut">Sara retires + sends proof</span></div>
+</div>
+</div>
+
+<div class="card" id="s1">
+<span class="eyebrow">Chapter 1 · Sara decides what counts</span><h2><span class="stepnum">1</span>Mandate — what we capture</h2>
+<p class="sub">Sara answers five questions. Hard rules filter; wishes rank. She avoids the December scramble by locking rules in January.</p>
+<details style="margin-top:8px"><summary>What “locking rules in January” means (expand)</summary>
+<p>Year-end is retirement season — everyone closes books at once, good credits sell out first and prices spike on what is left. Locking rules in January does not mean buying everything in January; it means Sara fixes budget, trust bar, mix, dip threshold, monthly amount, and forward target up front, so the engine stages purchases through the year: cheap months buy more, expensive months buy less, quality lots get locked early. No December panic order of “800t of anything.”</p>
+</details>
+<div class="def"><span class="callout-title">Terms used once, reused below</span>
+<dl class="gloss">
+<dt>Vintage</dt><dd>Year the reduction occurred. Buyers prefer last 5 years — 65% of 2024 retirements <cite class="num"><a href="#ref-em25">[1]</a></cite>.</dd>
+<dt>CCP label</dt><dd>Core Carbon Principles stamp from ICVCM — current high-integrity benchmark. 45 methods approved; old REDD + old stove methods rejected <cite class="num"><a href="#ref-icvcm">[10]</a></cite>.</dd>
+<dt>Permanence</dt><dd>How long carbon stays stored. Forest ~100y vs engineered 1000y+ <cite class="num"><a href="#ref-bezero">[11]</a></cite>.</dd>
+</dl>
+</div>
+<p><b>Sara's mandate.</b> €10k for ~800t of 2025 logistics emissions.</p>
+<ul class="tight">
+<li><b>Hard rules:</b> exclude wind/solar (additionality doubt — BCG/Shell note renewables additionality fell as costs reached parity <cite class="num"><a href="#ref-bcg">[12]</a></cite>), min rating BeZero A, vintage 2020+.</li>
+<li><b>Preferences:</b> Qatar-hosted if available; tree-planting (ARR) + metered stoves favored.</li>
+<li><b>Target:</b> VCMI Silver-ready — cover 10–50% of residuals with high-quality credits <cite class="num"><a href="#ref-vcmi">[8]</a></cite>.</li>
+</ul>
+<details class="srcs"><summary>Sources — mandate</summary><ul>
+<li>ICVCM assessment status (45 approved; VM0006/7/9/15/37 + AMS-II.G rejected); cookstove Mar 2025, REDD Nov 2024 decisions.</li>
+<li>BCG × EDF 500-buyer conjoint: pay more for third-party impact scores, prefer removals, MRV first.</li>
+<li>Nasdaq Net Zero Pulse 2024: 93% have strategy, 57% want removals, MRV 77% top, 80% want education.</li>
+</ul></details>
+</div>
+
+<div class="card" id="s2">
+<span class="eyebrow">Chapter 2 · We recommend, Sara approves</span><h2><span class="stepnum">2</span>The mix we advise for Sara</h2>
+<p class="sub">We recommend 2–3 options for Sara based on her mandate; she swaps one dish and approves. She avoids betting everything on one project.</p>
+<ul class="tight">
+<li><b>Fixed starters</b> — Budget / Balanced / Future-proof (defined below). One click.</li>
+<li><b>Adjustable ★</b> — swap any leg or weight; engine re-checks budget, removal share, CCP coverage, caps (30% per project, 50% per country).</li>
+<li><b>Custom</b> — full filters + forward builder for large buyers.</li>
+</ul>
+<div class="def"><span class="callout-title">Definitions — fixed starters</span>
+<div class="tiers">
+<div class="tier">
+<div class="tier-head"><span class="tier-name">Budget</span><span class="tier-tag">lowest cost · claim-safe</span></div>
+<div class="mixbar"><i style="width:70%;background:#f59e0b"></i><i style="width:20%;background:#16a34a"></i><i style="width:10%;background:#8b5cf6"></i></div>
+<p class="mut" style="margin:0">70% avoidance · 20% tree-planting · 10% biochar</p>
+<div class="chips"><span class="chip">Removal ~30%</span><span class="chip">100% rated</span><span class="chip">2020+</span><span class="chip">CCP / airline-eligible</span></div>
+<p class="pick"><b>Pick when:</b> tight budget, first year, SME covering a single year's leftovers.</p>
+</div>
+<div class="tier" style="border-color:#16a34a">
+<div class="tier-head"><span class="tier-name">Balanced ★ default</span><span class="tier-tag green">VCMI Gold-ready</span></div>
+<div class="mixbar"><i style="width:50%;background:#f59e0b"></i><i style="width:35%;background:#16a34a"></i><i style="width:15%;background:#8b5cf6"></i></div>
+<p class="mut" style="margin:0">50% avoidance · 35% nature removal · 15% durable (table below)</p>
+<div class="chips"><span class="chip">Removal 40–60%</span><span class="chip">Nature ≥30%</span><span class="chip">100% CCP/CORSIA</span><span class="chip">Avg last 3y</span></div>
+<p class="pick"><b>Pick when:</b> mid-size firm wanting audit strength without paying full durable prices.</p>
+</div>
+<div class="tier">
+<div class="tier-head"><span class="tier-name">Future-proof</span><span class="tier-tag blue">Oxford glidepath</span></div>
+<div class="mixbar"><i style="width:45%;background:#0ea5e9"></i><i style="width:40%;background:#16a34a"></i><i style="width:15%;background:#8b5cf6"></i></div>
+<p class="mut" style="margin:0">IFM + ARR base · durable ≥15% now, +5–10 pts yearly</p>
+<div class="chips"><span class="chip">Durable ≥15% ↑</span><span class="chip">Highest cost today</span><span class="chip">2030-proof</span></div>
+<p class="pick"><b>Pick when:</b> multi-year net-zero plan, board wants 2030-proof supply, can fund forwards.</p>
+</div>
+</div>
+<p class="mut" style="margin-bottom:0">Guardrails for all three: min 3 projects · max 30% one project · max 50% one country. Adjustable shows the cost/rating trade before you approve.</p>
+</div>
+<div class="table-wrap"><table><thead><tr><th>Balanced (recommended) — example legs</th><th>Share</th><th>Indicative</th></tr></thead><tbody>
+<tr><td>Improved Forest Management, US, vintage 2022, BeZero A</td><td>250t</td><td>~$16/t</td></tr>
+<tr><td>Afforestation/Reforestation (ARR), vintage 2023</td><td>250t</td><td>~$12/t</td></tr>
+<tr><td>Metered cookstoves, CCP-labelled</td><td>250t</td><td>~$8/t</td></tr>
+<tr><td>Biochar (durable removal)</td><td>18t</td><td>~$110/t</td></tr></tbody></table></div>
+<div class="chart"><canvas id="cMix"></canvas></div>
+<p class="takeaway">Why we recommend Balanced for Sara: stoves keep her cost down; tree-planting + biochar raise lock duration and future-proofing. No single leg dominates, so one failure doesn't sink her. She approves — nothing executes without her ok.</p>
+<div class="warn"><span class="callout-title">Our advice for Sara on Qatar</span>
+<ul class="tight">
+<li><b>Finding:</b> Qatar-hosted supply is narrow — GCC Doha lists Baladna composting (~29kt/yr <cite class="num"><a href="#ref-gcc">[13]</a></cite>) and Al-Shaheen gas recovery (~2.5Mt/yr, UN CDM record <cite class="num"><a href="#ref-cdm">[14]</a></cite>); no large-scale forestry/removals.</li>
+<li><b>Constraint:</b> 100%-Qatar would breach diversification caps and face thin OTC liquidity (not on Xpansiv CBL <cite class="num"><a href="#ref-cbl">[15]</a></cite>).</li>
+</ul>
+<div class="grid g2" style="margin-top:10px">
+<div class="box" style="margin:0"><b>Option A — Qatar-anchored ★ (all delivered now)</b><br><span class="mut">300t Qatar + 500t MENA/global — <b>both spot</b>: already issued, transferred to Sara now, retirable for 2025. One payment, closed this year.</span></div>
+<div class="box" style="margin:0"><b>Option B — Qatar-forward (part now, part later)</b><br><span class="mut">200t Qatar spot now + ~600t future Qatar under contract <cite class="num"><a href="#ref-qatar">[16]</a></cite> — <b>forward leg not yet issued</b>: deposit now, delivered 2027–28, retired then. Stronger local story, but she waits.</span></div>
+</div>
+<p style="margin:10px 0 0"><b>We recommend A;</b> Sara approves. B quoted alongside for the board.</p></div>
+<p class="takeaway">Why we filter this way — see Appendix B for three failures that set these rules.</p>
+<details class="srcs"><summary>Sources — mix + Qatar</summary><ul>
+<li>EM Table 3/4: forestry $9.27, REDD $6.03 −23%, IFM 3x, renewables $2.67, stoves $7.30; Sylvera $6.10 spot, $160 forwards, $12.25B offtakes.</li>
+<li>BeZero price-rating: +25%/notch avg, +40% recent; A+ +80% avg, +200% recent. Xpansiv CCP launch: ACR $2.25, VCS $2.50, CAR $9.13.</li>
+<li>GCC: Doha-based, CORSIA-eligible Mar 2021; 13.1M ACCs to 2025; registry by S&P Global. ME Council on Qatar carbon markets + NDC 3.0.</li>
+</ul></details>
+</div>
+
+<div class="card" id="s3">
+<span class="eyebrow">Chapter 3 · Sara watches her account</span><h2><span class="stepnum">3</span>Holding + seeing value</h2>
+<p class="sub">Sara avoids opening registry accounts herself. She checks lots like a bank app through the year.</p>
+<ul class="tight">
+<li><b>Where:</b> alive lots in sub-accounts under our masters (Verra $750+$750/yr <cite class="num"><a href="#ref-verra">[17]</a></cite>; Gold $1,000/yr <cite class="num"><a href="#ref-gs">[18]</a></cite> — saved for you).</li>
+<li><b>What you see per lot:</b> quantity · average cost · current mark · vintage · registry · rating · CCP/CORSIA flags.</li>
+<li><b>Marks (today's estimate):</b> each lot shows an estimated price compiled daily from three public price reporters (Platts, OPIS, Argus <cite class="num"><a href="#ref-pra">[19]</a></cite>) plus live prints on the CBL exchange for that type. If a lot barely trades, it gets a <b>thin-liquidity badge</b> with a price range instead of a single price — never shown as a stock tick, because ⅔ of deals are private with no single benchmark (IOSCO warning <cite class="num"><a href="#ref-iosco">[20]</a></cite>).</li>
+</ul>
+<div class="grid g2">
+<div><div class="chart"><canvas id="cTypes"></canvas></div><div class="takeaway"><b>Single-type bets are fragile</b> — 2024 moved types in opposite directions: REDD+ −23% price on −52% volume while waste and IFM volumes surged <cite class="num"><a href="#ref-em25">[1]</a></cite>.<br><span class="mut"><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:#0ea5e9;vertical-align:baseline"></span> price change · <span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:#f59e0b;vertical-align:baseline"></span> volume change, 2023→2024</span><br><span class="mut">*IFM ≈+200% = reported as &gt;3x transactions; no single IFM price change published, bar left blank.</span></div></div>
+<div><div class="chart"><canvas id="cMarket"></canvas></div><p class="takeaway">Trading fell to 84Mt but real use held at 182Mt <cite class="num"><a href="#ref-em25">[1]</a></cite> — saving on must-buys beats speculation.</p><p class="mut">Unit: Mt = megatonne = 1 million tonnes of CO₂e. (Sara's 800t = 0.0008Mt — her dashboard counts in tonnes, Mt is only for market totals.)</p></div>
+</div>
+<details class="srcs"><summary>Sources — custody + valuation</summary><ul>
+<li>Verra Registry overview + Fee Schedule v1 Oct 2024 ($0.02 transfer/retire, $0.23 issuance); Gold Fee Schedule v3.1 ($0.02, $0.25 issuance).</li>
+<li>Xpansiv Connect portfolio + CBL User Guide (Spot Inventory, T+0, 1–2 min deposit); CBL Fee Schedule Dec 2025 ($0.05+$0.05 voluntary, $2+$2 CORC).</li>
+<li>Platts / OPIS / Argus methodologies (daily Low/High/Avg, vintage tiers, FX); Patch/Cloverly portfolio patterns.</li>
+<li>Change chart: EM Table 3 2023→2024 — REDD price −23%/vol −52%, Renewables −32%/−23%, Household −5%/−50%, Waste −10%/+226%, IFM transactions &gt;3x (plotted ≈+200%).</li>
+</ul></details>
+</div>
+
+<div class="card" id="s4">
+<span class="eyebrow">Chapter 4 · Sara's year</span><h2><span class="stepnum">4</span>Buying cheaper without betting</h2>
+<p class="sub">An illustrative walk-through of Sara's year — months and prices are simplified to show how the three levers sequence. Every scene ends as a draft.</p>
+<div class="box"><span class="callout-title">Illustrative scenario · Sara · €10k / ~800t</span>
+<ul class="tight" style="list-style:none;padding-left:0">
+<li style="margin:10px 0"><b style="display:inline-block;background:#0f172a;color:#fff;border-radius:8px;padding:1px 10px;font-size:12px;margin-right:8px">MAR</b><b>Dip ping</b> — liked forest type drops 12% vs its 30-day average → we ping “buy 100t now to save ~$100?” → Sara approves or ignores. No auto-charge.</li>
+<li style="margin:10px 0"><b style="display:inline-block;background:#0f172a;color:#fff;border-radius:8px;padding:1px 10px;font-size:12px;margin-right:8px">JUN–AUG</b><b>Monthly buys</b> — €800/month auto-drafted; cheap months convert to more tonnes, expensive months to fewer. Smooths the price without timing the market.</li>
+<li style="margin:10px 0"><b style="display:inline-block;background:#0f172a;color:#fff;border-radius:8px;padding:1px 10px;font-size:12px;margin-right:8px">OCT</b><b>Forward lock for 2028</b> — she signs for 50t of 2028 biochar at today's $160/t → deposit now, delivery in 2028. Locks supply; waits years.</li>
+</ul>
+</div>
+<details style="margin-top:10px"><summary>Why this sequence — our reasoning (expand)</summary>
+<p>This order is proposed by our execution plan, not chosen by Sara month by month. Three layers:</p>
+<ul class="tight">
+<li><b>This year first, future second.</b> The 2025 ~800t is must-cover (retire and report); 2028 forwards are upside. The engine secures near-term coverage before allocating leftover budget to long-dated locks — never the reverse.</li>
+<li><b>Cash and information clear later.</b> January demand is an estimate; actuals sharpen by autumn. Forwards need deposits, due diligence, and negotiation, so they wait until remaining volume and budget are known. Monthly averaging plus opportunistic dips carry the first half without market timing.</li>
+<li><b>Recomputed after every execution.</b> Each dip buy and monthly draft updates remaining volume and budget; the forward suggestion equals the minimum of forecast gap, budget left, and concentration caps. Sara always sees advice based on what already happened — never a script frozen in January.</li>
+</ul>
+</details>
+<ul class="tight">
+<li><b>Dip alerts</b> — e.g. A-rated forest −10% vs 30-day avg → “buy 100t to save ~$X?” <cite class="num"><a href="#ref-pra">[19]</a></cite></li>
+<li><b>Monthly averaging</b> — fixed cash/month; high months buy less, low months buy more.</li>
+<li><b>Forward locks (offtakes)</b> — contract today for future delivery (e.g. 50t of 2028 biochar at $160/t <cite class="num"><a href="#ref-sylvera">[21]</a></cite>). Supplier finances construction; you lock supply. Years out, not spot — Microsoft 45Mt FY25 + Frontier $317M model <cite class="num"><a href="#ref-msft">[22]</a></cite>.</li>
+</ul>
+<div class="chart"><canvas id="cAvg"></canvas></div>
+<p class="takeaway">Same $1,000 buys 91t at $11 vs 167t at $6 — avoids December panic buying.</p>
+</div>
+
+<div class="card" id="app">
+<span class="eyebrow">Appendix A · Mechanics</span><h2>How the app works — behind Sara's clicks</h2>
+<p class="sub">Same five decisions; what happens between her click and the registry confirmation. Everything visible.</p>
+<div class="flow">
+<div class="badge"><b>You click</b><span class="mut">approve, schedule, retire</span></div><div class="arrow">→</div>
+<div class="badge"><b>Our engine checks</b><span class="mut">budget, quality, caps</span></div><div class="arrow">→</div>
+<div class="badge"><b>Partner moves</b><span class="mut">credits / money via market rails</span></div><div class="arrow">→</div>
+<div class="badge done"><b>Registry confirms</b><span class="mut">serials + public link</span></div>
+</div>
+<div class="def"><span class="callout-title">Separation of duties</span>We do not run registries. Verra, Gold Standard, and GCC Doha do. We run mandate, mix, ledger, valuation, and proof on top — same pattern as the existing ESG tool (uploads → job queues → scored reports → PDF export).</div>
+<h3>Mandate → mix</h3>
+<ul class="tight">
+<li><b>Filter out</b> — old vintages (pre-2016 default), ICVCM-rejected methods, below-minimum ratings.</li>
+<li><b>Score</b> — four checks, each 0–100, weighted into one rating (還沒跟我們原本的framework結合）:
+<ul class="tight">
+<li><b>Provability</b> — can the tonne be proved? Measured with meters/satellites (not models alone) + independently verified + serial-tracked. <i>How we check:</i> methodology version, verifier report, registry issuance records, BeZero/Sylvera rating.</li>
+<li><b>Lock duration (permanence)</b> — how long the carbon stays stored, and what backs reversals (e.g. forest buffer pool vs geological storage). <i>How we check:</i> project type + commitment period + buffer/insurance terms.</li>
+<li><b>Would-it-happen-anyway (additionality)</b> — would this cleanup exist without credit money? Wind farms near cost parity score low; metered stoves replacing firewood score higher. <i>How we check:</i> financial/regulatory tests in the methodology + BCG/Shell parity evidence.</li>
+<li><b>Resale liquidity</b> — could we exit before retiring? Recent prints on CBL, bid depth, OTC desk quotes for that type/vintage. <i>How we check:</i> 30-day prints + volume tiers; thin lots get the badge instead of a single price.</li>
+</ul></li>
+<li><b>Allocate</b> — Budget / Balanced / Future-proof within caps + budget / removal / stamp checks.</li>
+</ul>
+<div class="box"><span class="callout-title">Inline Qatar example — step by step</span>
+<ul class="tight">
+<li><b>1. Sara ticks “prefer Qatar.”</b> The engine searches Doha-issued GCC credits first — Baladna composting, Al-Shaheen gas recovery.</li>
+<li><b>2. She asks for 100% Qatar.</b> The engine refuses to build it silently: Qatar supply is only 2–3 types and trades over-the-counter (not on the live exchange), so a pure-Qatar bag trips two badges — <i>concentration</i> (too few projects) + <i>thin liquidity</i> (hard to resell).</li>
+<li><b>3. Engine proposes an alternative.</b> <b>Qatar-anchored:</b> 30–50% Qatar for the story + MENA/global balance for safety — with the cost/rating trade-off shown side by side. Sara approves or adjusts.</li>
+</ul></div>
+<h3>Custody + ledger</h3>
+<ul class="tight">
+<li><b>Alive</b> (hold/sell) → <b>retired</b> (dead, proof issued) or <b>transferred</b>. Each lot tracks project, registry, year, serials, cost, rating, stamps.</li>
+<li>Pre-funded wallet for same-day moves; large deals swap money + credits together. Daily reconcile; registry is final.</li>
+</ul>
+<h3>Valuation + execution</h3>
+<ul class="tight">
+<li>Daily pull of public assessments + live prints, each stamped with source, date, liquidity badge.</li>
+<li>Dips (~10% vs 30-day), monthly schedules (capped, pausable), forwards (deposit/milestone + failure buffer) all create <b>drafts</b> — no auto-charge.</li>
+</ul>
+<h3>Retire + disclose</h3>
+<ul class="tight">
+<li>Two-phase confirm because retirement is irreversible: draft → retype legal name to confirm.</li>
+<li>Registry call executes; serials + certificate stored; disclosure pack builds (tier math, splits, audit export). Banned wording blocked here.</li>
+</ul>
+</div>
+
+<div class="card" id="s5">
+<span class="eyebrow">Chapter 5 · Sara closes the year</span><h2><span class="stepnum">5</span>Retirement + disclosure</h2>
+<p class="sub">December: Sara types exact inputs once, sends the pack to auditors, avoids a fine.</p>
+<ul class="tight">
+<li><b>Required:</b> exact legal name · purpose (emissions year, scopes, activity) · quantity ≤ alive balance. Retirement is the Csquare/ECM-defined terminal step — transfer ≠ claim <cite class="num"><a href="#ref-ret">[23]</a></cite>.</li>
+<li><b>Output:</b> registry link with serials · PDF certificate · pack for VCMI tiers (Silver 10–&lt;50%, Gold 50–&lt;100%, Platinum ≥100%, rising yearly <cite class="num"><a href="#ref-vcmi">[8]</a></cite>) + CSRD E1-7 splits (retired vs future, reduction vs removal, biogenic vs tech, standard, EU share, Art.6 share <cite class="num"><a href="#ref-esrs">[9]</a></cite>).</li>
+<li><b>Blocked:</b> product-level “carbon neutral” via offsets in EU → suggested contribution wording instead <cite class="num"><a href="#ref-ecd">[6]</a></cite>.</li>
+</ul>
+</div>
+
+<div class="card" id="commercials">
+<span class="eyebrow">Pricing</span><h2>Commercials</h2>
+<ul class="tight">
+<li>Disclosed take 8–12% on spot, shown apart from $0.02 registry <cite class="num"><a href="#ref-verra">[17]</a></cite> + $0.05 voluntary ($2.00 tech-removal) pass-throughs <cite class="num"><a href="#ref-cbl">[15]</a></cite>.</li>
+<li>Optional custody/reporting subscription + forward-slice spread. No black-box margin — vs 90% non-disclosure <cite class="num"><a href="#ref-cmw">[5]</a></cite>.</li>
+</ul>
+<div class="chart"><canvas id="cFees"></canvas></div>
+<p class="mut">Illustrative $12.94/tonne split: $11.90 to project, $0.45 pass-throughs, remainder disclosed margin.</p>
+</div>
+
+<div class="card" id="failures">
+<span class="eyebrow">Appendix B · Lessons</span><h2>What failed before — and what Sara's rules fix</h2>
+<p class="sub">Moved here from the main flow. Three attempts tried “just like stocks” and broke on quality + liquidity — these failures are why Sara's filters exist.</p>
+<div class="table-wrap"><table><thead><tr><th>Attempt</th><th>Failure</th><th>Fix</th></tr></thead><tbody>
+<tr><td><b>Toucan + KlimaDAO.</b> 21M+ credits to tokens; $2B hype <cite class="num"><a href="#ref-toucan">[24]</a></cite>.</td><td>28% zombies; 99.9% pre-2016 ineligible; −50% crash; May 2022 ban <cite class="num"><a href="#ref-carbonplan">[25]</a></cite>.</td><td>Allow-list only: stamped + recent + rated. Old methods excluded.</td></tr>
+<tr><td><b>Flowcarbon $70M.</b> 1:1 token promise.</td><td>Never launched; refunded Sep 2024 <cite class="num"><a href="#ref-flow">[26]</a></cite>.</td><td>No token. Native registries + fractional rails.</td></tr>
+<tr><td><b>Old REDD at scale.</b> ~25% of 2023 use.</td><td>Over-crediting; −23% price, −52% vol; phased out mid-2025 <cite class="num"><a href="#ref-guardian">[27]</a></cite>.</td><td>30% cap, ratings required, yearly shift to removals.</td></tr>
+</tbody></table></div>
+<ul class="tight">
+<li><b>Toucan</b> outsourced quality to registries → dumping ground for cheap old stock. Hence Sara's allow-list.</li>
+<li><b>Flowcarbon</b> promised a token ahead of registry permission + bear market. Hence no token — native registries only.</li>
+<li><b>Old REDD</b> baselines too high, site risk ignored. Hence Sara's 30% cap + ratings + yearly shift to removals.</li>
+</ul>
+</div>
+
+<div class="card" id="save">
+<span class="eyebrow">Appendix C · Strategy</span><h2>Why save-cost first, trade parked</h2>
+<div class="grid g2">
+<div><div class="ok"><span class="callout-title">Save-cost works</span>Use held at 182Mt while trading fell to 84Mt <cite class="num"><a href="#ref-em25">[1]</a></cite>. Averaging + dips + forwards cut 10–20% vs December panic. No exit needed. Fits 93% with strategy (avg $5.4M/yr <cite class="num"><a href="#ref-sbti">[28]</a></cite>).</div></div>
+<div><div class="warn"><span class="callout-title">Trade usually fails</span>⅔ private deals <cite class="num"><a href="#ref-iosco">[20]</a></cite>; $0.10 fees erase $0.30 credits; basket $18.10 → $0.77 in a month; hidden 15.5%+ and 3x resales on 250 projects <cite class="num"><a href="#ref-cmw">[5]</a></cite>. Compliance futures (KRBN +147% <cite class="num"><a href="#ref-krbn">[29]</a></cite>) are regulated + volatile — gated, not V1.</div></div>
+</div>
+<p class="takeaway">Locked: V1 = save-cost only. Trade stays hidden until illiquidity warnings + loss ack + separate tabs ship.</p>
+</div>
+
+<footer class="bib" id="refs" style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:20px 22px">
+<b>Sources & proofs — every numbered claim above</b>
+<ol>
+<li id="ref-em25">Ecosystem Marketplace, State of the Voluntary Carbon Market 2025 (Forest Trends, 29 May 2025) — <a href="https://www.ecosystemmarketplace.com/publications/2025-state-of-the-voluntary-carbon-market-sovcm/">report</a> + <a href="https://3298623.fs1.hubspotusercontent-na1.net/hubfs/3298623/SOVCM%202025/Ecosystem%20Marketplace%20State%20of%20the%20Voluntary%20Carbon%20Market%202025.pdf">PDF</a>: $535M value, 84Mt volume, $6.34 avg, 182Mt retired; press release 29 May 2025.</li>
+<li id="ref-te">TradingEconomics EU Carbon Permits (EUA CFD, EEX) — peak €105.73 Feb 2023; Sandbag Carbon Price Viewer (EEX auction settlement).</li>
+<li id="ref-ec">EU Commission ETS trends (MSR from 2018; €80 avg 2022–23; €65 2024; €60–80 2025); KraneShares Q2 2026 Carbon Quarterly (CCA $32.96, RGGI $43.84, UKA £56.66, WCA $52.63).</li>
+<li id="ref-cm">Carbonmark — <a href="https://www.carbonmark.com/buy-carbon-credits">buy page</a> + <a href="https://www.carbonmark.com/post/how-to-buy-carbon-offsets">Aug 2026 guide</a>: $0.10–$650 across 91 projects; renewables &lt;$3, forestry $1–24, durable $110–650; fractional from 0.001t.</li>
+<li id="ref-cmw">Carbon Market Watch / AlliedOffsets intermediaries brief — <a href="https://carbonmarketwatch.org/wp-content/uploads/2023/02/CMW-briefing-on-intermediaries.pdf">PDF</a>: 90% hide fees, 15.5% avg of disclosers, 3x resales on ~250 projects; CFA Institute voluntary-market report concurs on ⅔ OTC opacity.</li>
+<li id="ref-ecd">EU Empowering Consumers Directive 2024/825 (product-level neutral via offsets banned); EU Green Claims proposal COM(2023)0166 + Parliament vote 12 Mar 2024 + Council approaches ST-11312/11554-2024.</li>
+<li id="ref-gc">ERCST Green Claims trilogue deck Jan 2025; Carbon Market Watch 12 Mar 2024 vote analysis.</li>
+<li id="ref-vcmi">VCMI Claims Code of Practice v3 Apr 2025 + 2025 update + MRA Framework + steps/submit guides — <a href="https://vcmintegrity.org/">vcmintegrity.org</a>: Silver ≥10–&lt;50%, Gold ≥50–&lt;100%, Platinum ≥100%, rising yearly; CCP-only from Jan 2027.</li>
+<li id="ref-esrs">EFRAG ESRS E1 Delegated Act + Knowledge Hub DR E1-7/E1-9; Regreener CSRD 2026 guide: gross scopes never netted, retired vs contracted-future, splits incl. Art.6 share.</li>
+<li id="ref-icvcm">ICVCM — <a href="https://www.icvcm.org/knowledge-resources/ccp-approved-methodologies/">CCP-approved list</a> + <a href="https://icvcm.org/assessment-status/">status table</a> (45 approved); cookstove Mar 2025, REDD Nov 2024, adipic Jun 2025 decisions; excluded VM0006/7/9/15/37 + AMS-II.G.</li>
+<li id="ref-bezero">BeZero Carbon price-rating correlation (50M+ CBL trades): +25%/notch avg, +40% recent; A+ +80% avg, +200% recent; Sylvera Ratings + State of Carbon Credits 2025 ($6.10 spot, $160 forwards, $12.25B offtakes).</li>
+<li id="ref-bcg">BCG × EDF 500-buyer conjoint (Nov 2022) + BCG/Shell outlook (116 stakeholders, linked 1.1Gt scenario); MSCI/Trove $10–40B vs TSVCM high; Morgan Stanley ~$100B 2030.</li>
+<li id="ref-gcc">Global Carbon Council — <a href="https://projects.globalcarboncouncil.com/pages/approved_projects">approved projects</a>, GCC 2.0 portal, Annual Reports 2023/2025 (13.1M ACCs to 2025, 180 registered); CORSIA-eligible Mar 2021; registry by S&P Global.</li>
+<li id="ref-cdm">UNFCCC CDM Project 0763 Al-Shaheen Oil Field Gas Recovery (2.5Mt/yr, AM0009, QA-5 serials); Article 6 pipeline (UNEP CCC) lists Qatar transition candidates.</li>
+<li id="ref-cbl">Xpansiv CBL overview + <a href="https://www.xpansiv.com/wp-content/uploads/2025/12/3_x___CBL_User_Guide_v2_6_1_FINAL.pdf">User Guide v2.6.1</a> + Connect portfolio/inventory docs + Fee Schedule Dec 2025; Carbonplace How It Works (14 registries, delivery-vs-payment).</li>
+<li id="ref-qatar">Middle East Council on Global Affairs (Mar 2025 + Jan 2025): Qatar NDC 25% by 2030, no comprehensive pricing, GCC + Qatar Airways programs; NDC 3.0 (42Mt by 2040, Ras Laffan CCS 2.2Mt → 5x).</li>
+<li id="ref-verra">Verra Registry overview + Program Fee Schedule v1 Oct 2024 + FAQs: $750 open + $750/yr, KYC orgs-only, $0.02 transfer/retire/cancel, $0.23 issuance; ECM Terminal VCU settlement (T+1–T+5 bilateral, 1–3 mo hold common).</li>
+<li id="ref-gs">Gold Standard Impact Registry guide + Fee Schedule v3.1 Dec 2024 + transaction-fee update: $1,000/yr, $0.25 issuance, $0.02 transfer/retire; sub-accounts for third-party holding.</li>
+<li id="ref-pra">S&P Platts Carbon Specifications + OPIS VCM/Global methodologies (daily Low/High/Avg, vintage tiers, FX) + Argus VCM methodology (weekly Thu).</li>
+<li id="ref-iosco">IOSCO Voluntary Carbon Markets report (21 good practices); UNCTAD VCM study (barriers: pricing, Article 6, verification cost).</li>
+<li id="ref-sylvera">Sylvera + Calyx-ClearBlue price-integrity index (Tier-1 premium from Q4 2023); Xpansiv Nov 2024 N-GEO $0.30–4.10, VWAP $18.10→$0.77 on mix change, best project $42.</li>
+<li id="ref-msft">Microsoft CDR procurement guidance + Source FY25 (45Mt, 21 firms; Stockholm Exergi 10y 5Mt+); HBS podcast + Trellis; Frontier (Stripe/Shopify/Meta/Alphabet) $1B AMC, $317M for 571kt + contract template.</li>
+<li id="ref-ret">Csquare 7-step retirement guide; ESGWeise buy/claim/retire; Carbonmark retirement explainer; PwC Viewpoint IFRS + KPMG + ISDA/ACCA (transferable = intangible asset if re-sellable).</li>
+<li id="ref-toucan">Toucan history blog; KlimaDAO launch; Frontiers KlimaDAO tokenomics study (staking collapse from Feb 2023).</li>
+<li id="ref-carbonplan">CarbonPlan “Zombies on the blockchain” Apr 2022: 28% zombies, 99.9% pre-2016 ineligible CORSIA; TIME May 2022; Protos bear-market piece; Verra May 2022 tokenization ban.</li>
+<li id="ref-flow">Forbes 11 Sep 2024 Flowcarbon refunds (Goddess Nature Token never launched, $70M raise 2022).</li>
+<li id="ref-guardian">Guardian 18 Jan 2023 (>90% phantom REDD) + Verra response + technical review Jan 2023 + Guardian 10 Mar 2023 phase-out by mid-2025.</li>
+<li id="ref-sbti">SBTi BVCM survey 2023 (212 firms, $5.4M avg, 56% buy); Nasdaq Net Zero Pulse 2024; SME Climate Hub 2024 (288 firms, 52% barriers); WMBC 180-firm survey Mar 2024 (20% consider, 50% if regulated).</li>
+<li id="ref-krbn">KraneShares KRBN ETF page + factsheet + Mar 2026 annual ($135M, 0.91%, +147% since inception, 1yr +6.6%, 3yr +2.18%); EU MiFID2 financial-instrument classification + auction eligibility (EEX).</li>
+</ol>
+Full working notes: <span style="white-space:nowrap">research/portfolio-of-carbon-credits.md</span>
+</footer>
+</main>
+<script>
+const base={maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:12}}},scales:{y:{beginAtZero:true}}};
+const mk=(id,cfg)=>new Chart(document.getElementById(id),{...cfg,options:{...base,...(cfg.options||{})}});
+mk('cMix',{type:'doughnut',data:{labels:['IFM 40%','ARR 30%','Cookstoves 20%','Biochar 10%'],datasets:[{data:[40,30,20,10],backgroundColor:['#0ea5e9','#16a34a','#f59e0b','#8b5cf6']}]},options:{maintainAspectRatio:false,plugins:{legend:{position:'bottom'}}}});
+mk('cTypes',{type:'bar',data:{labels:['REDD+','Renewables','Cookstoves','Waste','IFM*'],datasets:[{label:'Price change %',data:[-23,-32,-5,-10,null],backgroundColor:'#0ea5e9'},{label:'Volume change %',data:[-52,-23,-50,226,200],backgroundColor:'#f59e0b'}]}});
+mk('cMarket',{type:'bar',data:{labels:['2020','2021','2022','2023','2024'],datasets:[{label:'Traded Mt (survey)',data:[120,200,150,112,84],backgroundColor:'#0ea5e9'},{label:'Retired Mt (registries)',type:'line',data:[150,180,185,183,182],borderColor:'#16a34a',tension:.3}]}});
+mk('cAvg',{type:'bar',data:{labels:['Jan $9','Feb $7','Mar $11','Apr $6'],datasets:[{label:'Tonnes per $1,000',data:[111,143,91,167],backgroundColor:'#16a34a'}]}});
+mk('cFees',{type:'bar',data:{labels:['$12.94/t'],datasets:[{label:'Project',data:[11.9],backgroundColor:'#0f172a'},{label:'Pass-throughs',data:[0.45],backgroundColor:'#0ea5e9'},{label:'Margin',data:[1.09],backgroundColor:'#22c55e'}]},options:{maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{position:'bottom'}},scales:{x:{stacked:true,beginAtZero:true},y:{stacked:true}}}});
+</script>
+</body>
+</html>
